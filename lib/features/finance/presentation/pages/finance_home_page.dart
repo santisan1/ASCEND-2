@@ -3,20 +3,15 @@ import 'package:ascend/core/theme/app_text_styles.dart';
 import 'package:ascend/core/widgets/ascend_card.dart';
 import 'package:ascend/features/finance/data/transaction_model.dart';
 import 'package:ascend/features/finance/domain/finance_provider.dart';
-import 'package:ascend/features/finance/presentation/widgets/transaction_tile.dart';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as i;
 import 'package:provider/provider.dart';
-// Archivos de Widgets/UI
-import 'package:ascend/features/finance/presentation/widgets/month_selector.dart'; // Para MonthSelector
-import 'package:ascend/features/finance/presentation/widgets/category_chart.dart'; // Para CategoryChart
-import 'package:ascend/features/finance/presentation/widgets/savings_goal_card.dart'; // Para SavingsGoalCard
-import 'package:ascend/features/finance/presentation/widgets/transaction_tile.dart'; // Para TransactionTile
-
-// Archivos de Diálogos
-import 'package:ascend/features/finance/presentation/widgets/add_transaction_dialog.dart'; // Para AddTransactionDialog
-import 'package:ascend/features/finance/presentation/widgets/add_savings_goal_dialog.dart'; // Asegúrate de que este también está importado
+import 'package:ascend/features/finance/presentation/widgets/month_selector.dart';
+import 'package:ascend/features/finance/presentation/widgets/category_chart.dart';
+import 'package:ascend/features/finance/presentation/widgets/savings_goal_card.dart';
+import 'package:ascend/features/finance/presentation/widgets/transaction_tile.dart';
+import 'package:ascend/features/finance/presentation/widgets/add_transaction_dialog.dart';
+import 'package:ascend/features/finance/presentation/widgets/add_savings_goal_dialog.dart';
 
 class FinanceHomePage extends StatefulWidget {
   const FinanceHomePage({super.key});
@@ -80,6 +75,14 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
 
                             // Salud financiera
                             _buildFinancialHealth(financeProvider),
+
+                            const SizedBox(height: 8),
+
+                            _buildPaymentMethodBreakdown(financeProvider),
+
+                            const SizedBox(height: 8),
+
+                            _buildInvestmentSnapshot(financeProvider),
 
                             const SizedBox(height: 8),
 
@@ -428,6 +431,102 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodBreakdown(FinanceProvider provider) {
+    final byMethod = provider.getExpenseByPaymentMethod();
+
+    if (byMethod.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final total = byMethod.values.fold(0.0, (sum, value) => sum + value);
+
+    return AscendCardWithTitle(
+      title: 'Métodos de pago (gastos)',
+      icon: Icons.credit_card,
+      iconColor: AppColors.info,
+      content: Column(
+        children: byMethod.entries.map((entry) {
+          final ratio = total == 0 ? 0.0 : (entry.value / total).clamp(0.0, 1.0);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Icon(entry.key.icon, size: 16, color: AppColors.textSecondaryDark),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    entry.key.displayName,
+                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+                  ),
+                ),
+                SizedBox(
+                  width: 120,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      minHeight: 8,
+                      value: ratio,
+                      backgroundColor: AppColors.surfaceVariantDark,
+                      valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '\$${entry.value.toStringAsFixed(0)}',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimaryDark),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildInvestmentSnapshot(FinanceProvider provider) {
+    final invested = provider.getTotalInvestedThisMonth();
+    final ratio = provider.getInvestmentAllocationRatio();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariantDark.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.trending_up, color: AppColors.secondary),
+              const SizedBox(width: 8),
+              Text(
+                'Inversiones del mes',
+                style: AppTextStyles.h4.copyWith(color: AppColors.textPrimaryDark),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '\$${invested.toStringAsFixed(2)}',
+            style: AppTextStyles.h3.copyWith(
+              color: AppColors.textPrimaryDark,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Asignación sobre ingresos: ${(ratio * 100).toStringAsFixed(1)}%',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
           ),
         ],
       ),
@@ -942,119 +1041,5 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
         );
       }
     }
-  }
-}
-// =================================================================
-// STUBS DE WIDGETS FALTANTES (DEFINICIONES MÍNIMAS PARA COMPILAR)
-// ESTAS CLASES DEBEN ESTAR EN SUS PROPIOS ARCHIVOS EN UN PROYECTO REAL.
-// =================================================================
-
-// Necesario para CategoryChart
-class CategoryChart extends StatelessWidget {
-  final Map<String, double> expensesByCategory;
-  const CategoryChart({super.key, required this.expensesByCategory});
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 200,
-      child: Center(
-        child: Text(
-          'Gráfico de Categorías (Pendiente)',
-          style: TextStyle(color: Color(0xFF909497)),
-        ),
-      ),
-    );
-  }
-}
-
-// Necesario para SavingsGoalCard
-class SavingsGoalCard extends StatelessWidget {
-  final SavingsGoal goal;
-  final VoidCallback? onTap;
-  final VoidCallback? onAddAmount;
-
-  const SavingsGoalCard({
-    super.key,
-    required this.goal,
-    this.onTap,
-    this.onAddAmount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 160,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF333333),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Center(
-        child: Text(
-          'Meta: ${goal.name}',
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
-    );
-  }
-}
-
-// Necesario para MonthSelector
-class MonthSelector extends StatelessWidget {
-  final DateTime selectedMonth;
-  final Function(DateTime) onMonthChanged;
-
-  const MonthSelector({
-    super.key,
-    required this.selectedMonth,
-    required this.onMonthChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Implementación mínima para evitar errores de compilación
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        'Mes Seleccionado: ${selectedMonth.month}/${selectedMonth.year}',
-        style: const TextStyle(color: Color(0xFF909497)),
-      ),
-    );
-  }
-}
-
-// Necesario para AddTransactionDialog
-class AddTransactionDialog extends StatelessWidget {
-  final TransactionType initialType;
-
-  const AddTransactionDialog({super.key, required this.initialType});
-
-  @override
-  Widget build(BuildContext context) {
-    return const AlertDialog(
-      title: Text('Diálogo de Transacción (Pendiente)'),
-      content: Text('Implementación de AddTransactionDialog en curso.'),
-    );
-  }
-}
-
-// Necesario para TransactionTile
-class TransactionTile extends StatelessWidget {
-  final FinanceTransaction transaction;
-  final VoidCallback? onTap;
-
-  const TransactionTile({super.key, required this.transaction, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    // Implementación mínima para evitar errores de compilación
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(
-        '${transaction.category.displayName}: ${transaction.displayAmount}',
-        style: const TextStyle(color: Colors.white),
-      ),
-    );
   }
 }

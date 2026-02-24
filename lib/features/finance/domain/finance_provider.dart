@@ -334,6 +334,37 @@ class FinanceProvider extends ChangeNotifier {
     return incomeByDay;
   }
 
+
+  Map<PaymentMethod, double> getExpenseByPaymentMethod() {
+    final result = <PaymentMethod, double>{};
+    for (final method in PaymentMethod.values) {
+      result[method] = 0.0;
+    }
+
+    for (final tx in monthTransactions) {
+      if (tx.isExpense) {
+        result[tx.paymentMethod] = (result[tx.paymentMethod] ?? 0.0) + tx.amount;
+      }
+    }
+
+    result.removeWhere((_, value) => value == 0.0);
+    return result;
+  }
+
+  double getTotalInvestedThisMonth() {
+    return monthTransactions
+        .where((tx) => tx.category == TransactionCategory.investment)
+        .fold(0.0, (sum, tx) => sum + tx.amount);
+  }
+
+  double getInvestmentAllocationRatio() {
+    final totalIncome = monthTransactions
+        .where((tx) => tx.isIncome)
+        .fold(0.0, (sum, tx) => sum + tx.amount);
+    if (totalIncome == 0) return 0.0;
+    return (getTotalInvestedThisMonth() / totalIncome).clamp(0.0, 1.0);
+  }
+
   double getProjectedSavings() {
     if (_stats == null) return 0.0;
 

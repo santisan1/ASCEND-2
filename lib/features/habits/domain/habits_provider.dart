@@ -500,11 +500,91 @@ class HabitsProvider extends ChangeNotifier {
   // ========== MÉTODOS ADICIONALES ==========
 
   double getWeeklyConsistency() {
-    if (_habits.isEmpty) return 0.0;
-    final completedTodayCount = _habits
-        .where((h) => h.isFullyCompletedToday)
-        .length;
-    return completedTodayCount / _habits.length;
+    if (activeHabits.isEmpty) return 0.0;
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day).subtract(
+      const Duration(days: 6),
+    );
+
+    int dueSlots = 0;
+    int completedSlots = 0;
+
+    for (final habit in activeHabits) {
+      for (int i = 0; i < 7; i++) {
+        final day = start.add(Duration(days: i));
+        if (habit.frequency.contains(day.weekday)) {
+          dueSlots += 1;
+        }
+      }
+
+      completedSlots += habit.completionHistory.where((completion) {
+        try {
+          final date = DateTime.parse(completion);
+          return !date.isBefore(start) && !date.isAfter(now);
+        } catch (_) {
+          return false;
+        }
+      }).length;
+    }
+
+    if (dueSlots == 0) return 0.0;
+    return (completedSlots / dueSlots).clamp(0.0, 1.0);
+  }
+
+  Map<String, double> getMonthlyConsistencyByWeek() {
+    final now = DateTime.now();
+    final firstDay = DateTime(now.year, now.month, 1);
+    final lastDay = DateTime(now.year, now.month + 1, 0);
+
+    final buckets = <String, double>{};
+    DateTime cursor = firstDay;
+    int weekIndex = 1;
+
+    while (!cursor.isAfter(lastDay)) {
+      final weekStart = cursor;
+      final weekEnd = DateTime(
+        cursor.year,
+        cursor.month,
+        (cursor.day + 6).clamp(1, lastDay.day),
+      );
+
+      int due = 0;
+      int completed = 0;
+
+      for (final habit in activeHabits) {
+        for (int d = weekStart.day; d <= weekEnd.day; d++) {
+          final date = DateTime(now.year, now.month, d);
+          if (habit.frequency.contains(date.weekday)) {
+            due += 1;
+          }
+        }
+
+        completed += habit.completionHistory.where((completion) {
+          try {
+            final date = DateTime.parse(completion);
+            return date.year == now.year &&
+                date.month == now.month &&
+                date.day >= weekStart.day &&
+                date.day <= weekEnd.day;
+          } catch (_) {
+            return false;
+          }
+        }).length;
+      }
+
+      buckets['Sem $weekIndex'] = due == 0
+          ? 0.0
+          : (completed / due).clamp(0.0, 1.0);
+
+      weekIndex++;
+      cursor = weekEnd.add(const Duration(days: 1));
+    }
+
+    return buckets;
+  }
+
+  List<Habit> getAtRiskHabits() {
+    return habitsDueToday.where((habit) => habit.isStreakAtRisk).toList();
   }
 
   int getTotalStreak() {
