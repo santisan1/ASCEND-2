@@ -2,6 +2,9 @@ import 'package:ascend/core/widgets/ascend_card.dart';
 import 'package:ascend/features/finance/presentation/pages/finance_home_page.dart';
 import 'package:ascend/features/habits/presentation/habits_page.dart';
 import 'package:ascend/nueva_pagina.dart';
+import 'package:ascend/features/notifications/presentation/notification_settings_page.dart';
+import 'package:ascend/features/notifications/domain/notification_preferences_provider.dart';
+import 'package:ascend/features/wellness/presentation/spirituality_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -1484,37 +1487,40 @@ class _HomeContentPageState extends State<HomeContentPage> {
   }
 
   Widget _buildRemindersCard() {
+    final reminders = context.watch<NotificationPreferencesProvider>().reminders;
+    final active = reminders.where((r) => r.enabled).toList();
+
     return AscendCardWithTitle(
       title: 'Recordatorios',
       icon: Icons.notifications,
       iconColor: AppColors.accent,
-      trailing: Container(
-        width: 8,
-        height: 8,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.accent,
-        ),
+      trailing: TextButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const NotificationSettingsPage(),
+            ),
+          );
+        },
+        child: const Text('Configurar'),
       ),
       content: Column(
         children: [
-          _buildReminderItem(
-            'Comprar leche',
-            'Pantry - Bajo stock',
-            AppColors.warning,
-          ),
-          const SizedBox(height: 12),
-          _buildReminderItem(
-            'Transferir a ahorros',
-            'Finanzas - Automático',
-            AppColors.accentGreen,
-          ),
-          const SizedBox(height: 12),
-          _buildReminderItem(
-            'Llamar a mamá',
-            'Social - 2 días',
-            AppColors.accent,
-          ),
+          if (active.isEmpty)
+            _buildReminderItem(
+              'Sin recordatorios activos',
+              'Activá módulos clave desde Configurar',
+              AppColors.textTertiaryDark,
+            )
+          else
+            ...active.take(3).map(
+              (item) => _buildReminderItem(
+                item.module,
+                '${item.hour.toString().padLeft(2, '0')}:${item.minute.toString().padLeft(2, '0')} · ${item.message}',
+                AppColors.accent,
+              ),
+            ),
         ],
       ),
     );
@@ -1568,6 +1574,15 @@ class _HomeContentPageState extends State<HomeContentPage> {
   Widget _buildModulesBar() {
     final List<Map<String, dynamic>> modules = [
       {
+        'title': 'Espiritualidad',
+        'icon': Icons.auto_stories,
+        'color': AppColors.accent,
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SpiritualityPage()),
+        ),
+      },
+      {
         'title': 'Hábitos',
         'icon': Icons.track_changes,
         'color': AppColors.primary,
@@ -1575,21 +1590,36 @@ class _HomeContentPageState extends State<HomeContentPage> {
       {
         'title': 'Agenda',
         'icon': Icons.calendar_today,
-        'color': AppColors.accent,
+        'color': AppColors.info,
       },
-      {'title': 'Social', 'icon': Icons.people, 'color': AppColors.info},
-      {'title': 'Academia', 'icon': Icons.school, 'color': AppColors.secondary},
+      {
+        'title': 'Relaciones',
+        'icon': Icons.people,
+        'color': AppColors.secondary,
+      },
       {
         'title': 'Finanzas',
         'icon': Icons.attach_money,
         'color': AppColors.accentGreen,
       },
-      {'title': 'Pantry', 'icon': Icons.kitchen, 'color': AppColors.warning},
-      {'title': 'Hogar', 'icon': Icons.home, 'color': AppColors.error},
       {
-        'title': 'KPIs',
-        'icon': Icons.analytics,
+        'title': 'Salud',
+        'icon': Icons.favorite,
+        'color': AppColors.warning,
+      },
+      {
+        'title': 'Hogar',
+        'icon': Icons.home,
+        'color': AppColors.error,
+      },
+      {
+        'title': 'Notifs',
+        'icon': Icons.notifications_active,
         'color': AppColors.primaryDark,
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const NotificationSettingsPage()),
+        ),
       },
     ];
 
@@ -1624,6 +1654,7 @@ class _HomeContentPageState extends State<HomeContentPage> {
                 module['title'] as String,
                 module['icon'] as IconData,
                 module['color'] as Color,
+                onTap: module['onTap'] as VoidCallback?,
               );
             }).toList(),
           ),
@@ -1632,30 +1663,39 @@ class _HomeContentPageState extends State<HomeContentPage> {
     );
   }
 
-  Widget _buildModuleButton(String label, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: color.withOpacity(0.3)),
+  Widget _buildModuleButton(
+    String label,
+    IconData icon,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: color.withOpacity(0.3)),
+            ),
+            child: Icon(icon, color: color, size: 24),
           ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: TextStyle(
-            color: AppColors.textSecondaryDark,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.textSecondaryDark,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
   }
 

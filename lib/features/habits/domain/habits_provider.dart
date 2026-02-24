@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'habit_model.dart';
+import '../../../core/services/notification_service.dart';
 
 class HabitsProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -424,10 +425,25 @@ class HabitsProvider extends ChangeNotifier {
   // ========== HELPER METHODS ==========
 
   Future<void> _scheduleReminder(Habit habit) async {
+    if (habit.reminderTime == null) return;
+
+    final parts = habit.reminderTime!.split(':');
+    if (parts.length != 2) return;
+
+    final hour = int.tryParse(parts[0]) ?? 20;
+    final minute = int.tryParse(parts[1]) ?? 0;
+
+    await NotificationService.instance.initialize();
+    await NotificationService.instance.scheduleDailyReminder(
+      id: habit.id.hashCode.abs() % 100000,
+      title: 'ASCEND · Hábito',
+      body: 'Recordatorio: ${habit.name}',
+      hour: hour,
+      minute: minute,
+    );
+
     if (kDebugMode) {
-      print(
-        'Recordatorio programado para ${habit.name} a las ${habit.reminderTime}',
-      );
+      print('Recordatorio local programado para ${habit.name} a las ${habit.reminderTime}');
     }
   }
 
