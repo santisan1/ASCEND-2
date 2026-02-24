@@ -17,19 +17,35 @@ class NotificationSettingsPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: AppColors.surfaceDark,
         title: const Text('Notificaciones ASCEND'),
+        actions: [
+          IconButton(
+            onPressed: () => context.read<NotificationPreferencesProvider>().pullFromCloud(),
+            icon: const Icon(Icons.sync),
+            tooltip: 'Sincronizar',
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'Configurá recordatorios por módulo',
+            'Recordatorios por módulo',
             style: AppTextStyles.h3.copyWith(color: AppColors.textPrimaryDark),
           ),
           const SizedBox(height: 8),
           Text(
-            'Sin Cloud Functions: funciona con recordatorios locales en tu dispositivo.',
+            'Se sincronizan con Firestore para usar ASCEND en varios dispositivos.',
             style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.textSecondaryDark,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            provider.lastSyncAt == null
+                ? 'Última sync: pendiente'
+                : 'Última sync: ${provider.lastSyncAt}',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textTertiaryDark,
             ),
           ),
           const SizedBox(height: 20),
@@ -115,12 +131,35 @@ class _ReminderTile extends StatelessWidget {
                 label: const Text('Hora'),
               ),
               const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: () => provider.testNotification(reminder.module),
-                icon: const Icon(Icons.notifications_active, size: 16),
-                label: const Text('Probar'),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: reminder.frequency,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  ),
+                  dropdownColor: AppColors.surfaceDark,
+                  items: const [
+                    DropdownMenuItem(value: 'daily', child: Text('Diaria')),
+                    DropdownMenuItem(value: 'weekdays', child: Text('Lun-Vie')),
+                    DropdownMenuItem(value: 'weekend', child: Text('Finde')),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    provider.updateReminder(
+                      reminder.module,
+                      reminder.copyWith(frequency: value),
+                    );
+                  },
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => provider.testNotification(reminder.module),
+            icon: const Icon(Icons.notifications_active, size: 16),
+            label: const Text('Probar notificación'),
           ),
         ],
       ),
