@@ -568,8 +568,8 @@ class _HomeContentPageState extends State<HomeContentPage> {
                   const SizedBox(height: 16),
                   _buildLifeInsightsCard(),
                   const SizedBox(height: 24),
-                  _buildPrioritiesSection(), // <-- AGREGÁ ESTA LÍNEA
-                  const SizedBox(height: 24), // <-- AGREGÁ ESTA LÍNEA
+                  _buildPrioritiesSection(),
+                  const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -582,70 +582,6 @@ class _HomeContentPageState extends State<HomeContentPage> {
                               _buildDayCard(),
                               const SizedBox(height: 16),
                               _buildHabitsCard(),
-                              const SizedBox(height: 32),
-
-                              // Widget adicional para ocupar espacio
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceVariantDark
-                                      .withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: AppColors.borderDark,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.trending_up,
-                                          color: AppColors.primary,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Progreso Mensual',
-                                          style: AppTextStyles.h4.copyWith(
-                                            color: AppColors.textPrimaryDark,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    LinearProgressIndicator(
-                                      value: 0.65,
-                                      backgroundColor:
-                                          AppColors.surfaceVariantDark,
-                                      color: AppColors.primary,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Consistencia',
-                                          style: TextStyle(
-                                            color: AppColors.textSecondaryDark,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        Text(
-                                          '65%',
-                                          style: TextStyle(
-                                            color: AppColors.primary,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
                             ],
                           ),
                         ),
@@ -657,48 +593,6 @@ class _HomeContentPageState extends State<HomeContentPage> {
                               _buildKPIsCard(),
                               const SizedBox(height: 16),
                               _buildRemindersCard(),
-                              const SizedBox(height: 32),
-
-                              // Widget adicional
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceVariantDark
-                                      .withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: AppColors.borderDark,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.flag,
-                                          color: AppColors.accent,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Metas',
-                                          style: AppTextStyles.h4.copyWith(
-                                            color: AppColors.textPrimaryDark,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      '2 de 5 metas completadas esta semana',
-                                      style: TextStyle(
-                                        color: AppColors.textSecondaryDark,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                             ],
                           ),
                         ),
@@ -718,70 +612,7 @@ class _HomeContentPageState extends State<HomeContentPage> {
                   // Sección de consejos
                   _buildTipsSection(),
 
-                  // Footer con instrucciones
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceVariantDark.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          '💡 Consejo del día',
-                          style: AppTextStyles.h4.copyWith(
-                            color: AppColors.textPrimaryDark,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Revisa tus hábitos diarios para mantener la consistencia.',
-                          style: TextStyle(
-                            color: AppColors.textSecondaryDark,
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        InkWell(
-                          onTap: _refreshData,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.primary),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.refresh,
-                                  color: AppColors.primary,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Actualizar manualmente',
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ESPACIO FINAL PARA GARANTIZAR SCROLL
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                  const SizedBox(height: 56),
                 ],
               ),
             ),
@@ -1565,6 +1396,11 @@ class _HomeContentPageState extends State<HomeContentPage> {
           Text(
             'Índice integral: ${(integralScore * 100).toStringAsFixed(0)}% · Hábitos ${(habitsScore * 100).toStringAsFixed(0)}% · Finanzas ${(savingsRate * 100).toStringAsFixed(0)}%',
             style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Sync notif: ${notificationsProvider.syncState.name}',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiaryDark),
           ),
           const SizedBox(height: 12),
           if (userId != null)

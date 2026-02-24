@@ -48,6 +48,19 @@ class NotificationSettingsPage extends StatelessWidget {
               color: AppColors.textTertiaryDark,
             ),
           ),
+          const SizedBox(height: 2),
+          Text(
+            provider.syncState == SyncState.synced
+                ? 'Estado: sincronizado'
+                : provider.syncState == SyncState.pending
+                    ? 'Estado: cambios pendientes de sync'
+                    : 'Estado: error de sync',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: provider.syncState == SyncState.error
+                  ? AppColors.error
+                  : AppColors.textSecondaryDark,
+            ),
+          ),
           const SizedBox(height: 20),
           ...provider.reminders.map(
             (reminder) => _ReminderTile(reminder: reminder),
@@ -154,6 +167,28 @@ class _ReminderTile extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final c = TextEditingController(text: reminder.message);
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Mensaje del recordatorio'),
+                  content: TextField(controller: c, maxLines: 3),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+                    ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Guardar')),
+                  ],
+                ),
+              );
+              if (ok == true) {
+                provider.updateReminder(reminder.module, reminder.copyWith(message: c.text.trim().isEmpty ? reminder.message : c.text.trim()));
+              }
+            },
+            icon: const Icon(Icons.edit_note, size: 16),
+            label: const Text('Editar mensaje'),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(

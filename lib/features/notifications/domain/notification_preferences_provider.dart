@@ -62,6 +62,8 @@ class ModuleReminder {
   }
 }
 
+enum SyncState { synced, pending, error }
+
 class NotificationPreferencesProvider extends ChangeNotifier {
   static const _storageKey = 'ascend_module_reminders_v2';
 
@@ -101,10 +103,14 @@ class NotificationPreferencesProvider extends ChangeNotifier {
 
   DateTime? _lastSyncAt;
   Map<String, DateTime> _lastSeenByModule = {};
+  SyncState _syncState = SyncState.pending;
+  String? _lastSyncError;
 
   List<ModuleReminder> get reminders => _reminders;
   DateTime? get lastSyncAt => _lastSyncAt;
   Map<String, DateTime> get lastSeenByModule => _lastSeenByModule;
+  SyncState get syncState => _syncState;
+  String? get lastSyncError => _lastSyncError;
 
   NotificationPreferencesProvider() {
     _init();
@@ -182,6 +188,8 @@ class NotificationPreferencesProvider extends ChangeNotifier {
         ),
       );
       await _saveLocal();
+      _syncState = SyncState.synced;
+      _lastSyncError = null;
       notifyListeners();
     }
   }
@@ -190,25 +198,33 @@ class NotificationPreferencesProvider extends ChangeNotifier {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('settings')
-        .doc('notification_preferences')
-        .set({
-          'reminders': _reminders.map((e) => e.toJson()).toList(),
-          'updatedAt': FieldValue.serverTimestamp(),
-          'lastSeenByModule': _lastSeenByModule.map(
-            (k, v) => MapEntry(k, Timestamp.fromDate(v)),
-          ),
-        }, SetOptions(merge: true));
+    try {
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('settings')
+          .doc('notification_preferences')
+          .set({
+            'reminders': _reminders.map((e) => e.toJson()).toList(),
+            'updatedAt': FieldValue.serverTimestamp(),
+            'lastSeenByModule': _lastSeenByModule.map(
+              (k, v) => MapEntry(k, Timestamp.fromDate(v)),
+            ),
+          }, SetOptions(merge: true));
 
-    _lastSyncAt = DateTime.now();
+      _lastSyncAt = DateTime.now();
+      _syncState = SyncState.synced;
+      _lastSyncError = null;
+    } catch (e) {
+      _syncState = SyncState.error;
+      _lastSyncError = e.toString();
+    }
     notifyListeners();
   }
 
   Future<void> updateReminder(String module, ModuleReminder updated) async {
     _reminders = _reminders.map((r) => r.module == module ? updated : r).toList();
+    _syncState = SyncState.pending;
     await _saveLocal();
     await _pushToCloud();
     await _syncSchedules();
@@ -253,6 +269,7 @@ class NotificationPreferencesProvider extends ChangeNotifier {
 
   Future<void> markModuleAsSeen(String module) async {
     _lastSeenByModule[module] = DateTime.now();
+    _syncState = SyncState.pending;
     await _saveLocal();
     await _pushToCloud();
     notifyListeners();

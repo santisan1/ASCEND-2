@@ -20,7 +20,10 @@ class FinanceHomePage extends StatefulWidget {
   State<FinanceHomePage> createState() => _FinanceHomePageState();
 }
 
+enum _TxFilter { all, incomes, expenses }
+
 class _FinanceHomePageState extends State<FinanceHomePage> {
+  _TxFilter _txFilter = _TxFilter.all;
   @override
   Widget build(BuildContext context) {
     final financeProvider = context.watch<FinanceProvider>();
@@ -96,6 +99,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                               _buildSavingsGoals(financeProvider),
 
                             // Transacciones recientes
+                            _buildTxFilterRow(),
                             _buildRecentTransactions(financeProvider),
 
                             const SizedBox(height: 80),
@@ -586,8 +590,57 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
     );
   }
 
+  Widget _buildTxFilterRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        children: [
+          _buildTxFilterChip('Todo', _TxFilter.all),
+          const SizedBox(width: 8),
+          _buildTxFilterChip('Ingresos', _TxFilter.incomes),
+          const SizedBox(width: 8),
+          _buildTxFilterChip('Gastos', _TxFilter.expenses),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTxFilterChip(String label, _TxFilter filter) {
+    final selected = _txFilter == filter;
+    return InkWell(
+      onTap: () => setState(() => _txFilter = filter),
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primary.withOpacity(0.18)
+              : AppColors.surfaceVariantDark,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.borderDark,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? AppColors.primary : AppColors.textSecondaryDark,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildRecentTransactions(FinanceProvider provider) {
-    final transactions = provider.monthTransactions.take(10).toList();
+    var transactions = provider.monthTransactions;
+    if (_txFilter == _TxFilter.incomes) {
+      transactions = transactions.where((t) => t.isIncome).toList();
+    } else if (_txFilter == _TxFilter.expenses) {
+      transactions = transactions.where((t) => t.isExpense).toList();
+    }
+    transactions = transactions.take(10).toList();
 
     if (transactions.isEmpty) {
       return _buildEmptyTransactions();
