@@ -1,8 +1,15 @@
 import 'package:ascend/core/widgets/ascend_card.dart';
 import 'package:ascend/features/finance/presentation/pages/finance_home_page.dart';
+import 'package:ascend/features/finance/domain/finance_provider.dart';
 import 'package:ascend/features/habits/presentation/habits_page.dart';
+import 'package:ascend/features/habits/domain/habits_provider.dart';
 import 'package:ascend/nueva_pagina.dart';
+import 'package:ascend/features/notifications/presentation/notification_settings_page.dart';
+import 'package:ascend/features/notifications/domain/notification_preferences_provider.dart';
+import 'package:ascend/features/wellness/presentation/spirituality_page.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -558,9 +565,11 @@ class _HomeContentPageState extends State<HomeContentPage> {
 
                   const SizedBox(height: 24),
                   _buildWelcomeCard(widget.displayName),
+                  const SizedBox(height: 16),
+                  _buildLifeInsightsCard(),
                   const SizedBox(height: 24),
-                  _buildPrioritiesSection(), // <-- AGREGÁ ESTA LÍNEA
-                  const SizedBox(height: 24), // <-- AGREGÁ ESTA LÍNEA
+                  _buildPrioritiesSection(),
+                  const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -573,70 +582,6 @@ class _HomeContentPageState extends State<HomeContentPage> {
                               _buildDayCard(),
                               const SizedBox(height: 16),
                               _buildHabitsCard(),
-                              const SizedBox(height: 32),
-
-                              // Widget adicional para ocupar espacio
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceVariantDark
-                                      .withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: AppColors.borderDark,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.trending_up,
-                                          color: AppColors.primary,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Progreso Mensual',
-                                          style: AppTextStyles.h4.copyWith(
-                                            color: AppColors.textPrimaryDark,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    LinearProgressIndicator(
-                                      value: 0.65,
-                                      backgroundColor:
-                                          AppColors.surfaceVariantDark,
-                                      color: AppColors.primary,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Consistencia',
-                                          style: TextStyle(
-                                            color: AppColors.textSecondaryDark,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        Text(
-                                          '65%',
-                                          style: TextStyle(
-                                            color: AppColors.primary,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
                             ],
                           ),
                         ),
@@ -648,48 +593,6 @@ class _HomeContentPageState extends State<HomeContentPage> {
                               _buildKPIsCard(),
                               const SizedBox(height: 16),
                               _buildRemindersCard(),
-                              const SizedBox(height: 32),
-
-                              // Widget adicional
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceVariantDark
-                                      .withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: AppColors.borderDark,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.flag,
-                                          color: AppColors.accent,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Metas',
-                                          style: AppTextStyles.h4.copyWith(
-                                            color: AppColors.textPrimaryDark,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      '2 de 5 metas completadas esta semana',
-                                      style: TextStyle(
-                                        color: AppColors.textSecondaryDark,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                             ],
                           ),
                         ),
@@ -709,70 +612,7 @@ class _HomeContentPageState extends State<HomeContentPage> {
                   // Sección de consejos
                   _buildTipsSection(),
 
-                  // Footer con instrucciones
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceVariantDark.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          '💡 Consejo del día',
-                          style: AppTextStyles.h4.copyWith(
-                            color: AppColors.textPrimaryDark,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Revisa tus hábitos diarios para mantener la consistencia.',
-                          style: TextStyle(
-                            color: AppColors.textSecondaryDark,
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        InkWell(
-                          onTap: _refreshData,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.primary),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.refresh,
-                                  color: AppColors.primary,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Actualizar manualmente',
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ESPACIO FINAL PARA GARANTIZAR SCROLL
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                  const SizedBox(height: 56),
                 ],
               ),
             ),
@@ -1483,38 +1323,172 @@ class _HomeContentPageState extends State<HomeContentPage> {
     );
   }
 
+  Widget _buildLifeInsightsCard() {
+    final habitsProvider = context.watch<HabitsProvider>();
+    final financeProvider = context.watch<FinanceProvider>();
+    final notificationsProvider = context.watch<NotificationPreferencesProvider>();
+
+    final habitsScore = habitsProvider.getWeeklyConsistency();
+    final savingsRate = financeProvider.savingsRate.clamp(0.0, 1.0);
+    final notifScore = notificationsProvider.reminders.where((r) => r.enabled).isEmpty
+        ? 0.3
+        : 0.8;
+
+    final integralScore = ((habitsScore * 0.45) + (savingsRate * 0.35) + (notifScore * 0.2))
+        .clamp(0.0, 1.0);
+
+    final status = integralScore >= 0.75
+        ? 'verde'
+        : integralScore >= 0.45
+        ? 'amarillo'
+        : 'rojo';
+
+    final statusColor = status == 'verde'
+        ? AppColors.accentGreen
+        : status == 'amarillo'
+        ? AppColors.warning
+        : AppColors.error;
+
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.borderDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.insights, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Insights de vida (hoy)',
+                style: AppTextStyles.h4.copyWith(color: AppColors.textPrimaryDark),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  status.toUpperCase(),
+                  style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: integralScore,
+            minHeight: 9,
+            backgroundColor: AppColors.surfaceVariantDark,
+            valueColor: AlwaysStoppedAnimation(statusColor),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Índice integral: ${(integralScore * 100).toStringAsFixed(0)}% · Hábitos ${(habitsScore * 100).toStringAsFixed(0)}% · Finanzas ${(savingsRate * 100).toStringAsFixed(0)}%',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Sync notif: ${notificationsProvider.syncState.name}',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiaryDark),
+          ),
+          const SizedBox(height: 12),
+          if (userId != null)
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(userId)
+                  .collection('spiritual_entries')
+                  .orderBy('createdAt', descending: true)
+                  .limit(7)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                final count = snapshot.data?.docs.length ?? 0;
+                final spiritualityScore = (count / 7).clamp(0.0, 1.0);
+                return Text(
+                  'Espiritualidad (7 días): ${(spiritualityScore * 100).toStringAsFixed(0)}% (${count}/7 entradas)',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRemindersCard() {
+    final provider = context.watch<NotificationPreferencesProvider>();
+    final reminders = provider.reminders;
+    final active = reminders.where((r) => r.enabled).toList();
+    final now = DateTime.now();
+    final unseen = active.where((r) {
+      final seenAt = provider.lastSeenByModule[r.module];
+      if (seenAt == null) return true;
+      return seenAt.year != now.year || seenAt.month != now.month || seenAt.day != now.day;
+    }).length;
+
     return AscendCardWithTitle(
       title: 'Recordatorios',
       icon: Icons.notifications,
       iconColor: AppColors.accent,
-      trailing: Container(
-        width: 8,
-        height: 8,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.accent,
-        ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (unseen > 0)
+            Container(
+              margin: const EdgeInsets.only(right: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '$unseen',
+                style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
+              ),
+            ),
+          TextButton(
+            onPressed: () {
+              for (final r in active) {
+                provider.markModuleAsSeen(r.module);
+              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationSettingsPage(),
+                ),
+              );
+            },
+            child: const Text('Configurar'),
+          ),
+        ],
       ),
       content: Column(
         children: [
-          _buildReminderItem(
-            'Comprar leche',
-            'Pantry - Bajo stock',
-            AppColors.warning,
-          ),
-          const SizedBox(height: 12),
-          _buildReminderItem(
-            'Transferir a ahorros',
-            'Finanzas - Automático',
-            AppColors.accentGreen,
-          ),
-          const SizedBox(height: 12),
-          _buildReminderItem(
-            'Llamar a mamá',
-            'Social - 2 días',
-            AppColors.accent,
-          ),
+          if (active.isEmpty)
+            _buildReminderItem(
+              'Sin recordatorios activos',
+              'Activá módulos clave desde Configurar',
+              AppColors.textTertiaryDark,
+            )
+          else
+            ...active.take(3).map(
+              (item) => _buildReminderItem(
+                item.module,
+                '${item.hour.toString().padLeft(2, '0')}:${item.minute.toString().padLeft(2, '0')} · ${item.message}',
+                AppColors.accent,
+              ),
+            ),
         ],
       ),
     );
@@ -1568,6 +1542,15 @@ class _HomeContentPageState extends State<HomeContentPage> {
   Widget _buildModulesBar() {
     final List<Map<String, dynamic>> modules = [
       {
+        'title': 'Espiritualidad',
+        'icon': Icons.auto_stories,
+        'color': AppColors.accent,
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SpiritualityPage()),
+        ),
+      },
+      {
         'title': 'Hábitos',
         'icon': Icons.track_changes,
         'color': AppColors.primary,
@@ -1575,21 +1558,36 @@ class _HomeContentPageState extends State<HomeContentPage> {
       {
         'title': 'Agenda',
         'icon': Icons.calendar_today,
-        'color': AppColors.accent,
+        'color': AppColors.info,
       },
-      {'title': 'Social', 'icon': Icons.people, 'color': AppColors.info},
-      {'title': 'Academia', 'icon': Icons.school, 'color': AppColors.secondary},
+      {
+        'title': 'Relaciones',
+        'icon': Icons.people,
+        'color': AppColors.secondary,
+      },
       {
         'title': 'Finanzas',
         'icon': Icons.attach_money,
         'color': AppColors.accentGreen,
       },
-      {'title': 'Pantry', 'icon': Icons.kitchen, 'color': AppColors.warning},
-      {'title': 'Hogar', 'icon': Icons.home, 'color': AppColors.error},
       {
-        'title': 'KPIs',
-        'icon': Icons.analytics,
+        'title': 'Salud',
+        'icon': Icons.favorite,
+        'color': AppColors.warning,
+      },
+      {
+        'title': 'Hogar',
+        'icon': Icons.home,
+        'color': AppColors.error,
+      },
+      {
+        'title': 'Notifs',
+        'icon': Icons.notifications_active,
         'color': AppColors.primaryDark,
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const NotificationSettingsPage()),
+        ),
       },
     ];
 
@@ -1624,6 +1622,7 @@ class _HomeContentPageState extends State<HomeContentPage> {
                 module['title'] as String,
                 module['icon'] as IconData,
                 module['color'] as Color,
+                onTap: module['onTap'] as VoidCallback?,
               );
             }).toList(),
           ),
@@ -1632,30 +1631,39 @@ class _HomeContentPageState extends State<HomeContentPage> {
     );
   }
 
-  Widget _buildModuleButton(String label, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: color.withOpacity(0.3)),
+  Widget _buildModuleButton(
+    String label,
+    IconData icon,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: color.withOpacity(0.3)),
+            ),
+            child: Icon(icon, color: color, size: 24),
           ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: TextStyle(
-            color: AppColors.textSecondaryDark,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.textSecondaryDark,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
   }
 
