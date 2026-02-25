@@ -516,21 +516,13 @@ class _HomeContentPageState extends State<HomeContentPage> {
     return SafeArea(
       child: Stack(
         children: [
-          NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              // Detectar cuando llega al top
-              if (notification is ScrollStartNotification) {
-                if (_scrollController.position.pixels == 0) {
-                  _refreshData();
-                  return true;
-                }
-              }
-              return false;
-            },
+          RefreshIndicator(
+            onRefresh: _refreshData,
+            color: AppColors.primary,
             child: SingleChildScrollView(
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 100), // Espacio extra
+              padding: const EdgeInsets.only(bottom: 100),
               child: Column(
                 children: [
                   // Indicador de pull to refresh visible
@@ -572,31 +564,50 @@ class _HomeContentPageState extends State<HomeContentPage> {
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 6,
-                          child: Column(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isCompact = constraints.maxWidth < 900;
+                        if (isCompact) {
+                          return Column(
                             children: [
                               _buildDayCard(),
                               const SizedBox(height: 16),
                               _buildHabitsCard(),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          flex: 4,
-                          child: Column(
-                            children: [
+                              const SizedBox(height: 16),
                               _buildKPIsCard(),
                               const SizedBox(height: 16),
                               _buildRemindersCard(),
                             ],
-                          ),
-                        ),
-                      ],
+                          );
+                        }
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 6,
+                              child: Column(
+                                children: [
+                                  _buildDayCard(),
+                                  const SizedBox(height: 16),
+                                  _buildHabitsCard(),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 4,
+                              child: Column(
+                                children: [
+                                  _buildKPIsCard(),
+                                  const SizedBox(height: 16),
+                                  _buildRemindersCard(),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
 
@@ -885,151 +896,37 @@ class _HomeContentPageState extends State<HomeContentPage> {
     );
   }
 
-  // REEMPLAZAR _buildDayCard con:
   Widget _buildDayCard() {
-    return Container(
-      padding: const EdgeInsets.only(top: 20, left: 20, right: 20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariantDark.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.borderDark),
+    final items = [
+      ('09:00', 'Reunión equipo', TimelineStatus.completed, Icons.videocam, AppColors.primary),
+      ('Ahora', 'Trabajo en proyecto', TimelineStatus.current, Icons.work, AppColors.accent),
+      ('16:00', 'Revisión finanzas', TimelineStatus.upcoming, Icons.attach_money, AppColors.accentGreen),
+    ];
+
+    return AscendCardWithTitle(
+      title: 'Tu día hoy',
+      icon: Icons.calendar_today,
+      iconColor: AppColors.primary,
+      trailing: Text(
+        '${items.where((e) => e.$3 == TimelineStatus.completed).length}/${items.length} listo',
+        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.calendar_today,
-                color: AppColors.primary,
-                size: 20,
+      content: Column(
+        children: items
+            .map(
+              (item) => _buildTimelineItemWithTime(
+                time: item.$1,
+                title: item.$2,
+                icon: item.$4,
+                status: item.$3,
+                color: item.$5,
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Tu Día Hoy',
-                style: AppTextStyles.h4.copyWith(
-                  color: AppColors.textPrimaryDark,
-                ),
-              ),
-              const Spacer(),
-              // Selector de día
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      'Hoy',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.arrow_drop_down,
-                      color: AppColors.primary,
-                      size: 16,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Timeline con estado actual destacado
-          _buildTimelineItemWithTime(
-            time: '09:00 - 10:00',
-            title: 'Reunión equipo',
-            icon: Icons.videocam,
-            status: TimelineStatus.completed,
-            color: AppColors.primary,
-          ),
-
-          _buildTimelineItemWithTime(
-            time: 'ACTUAL',
-            title: 'Trabajo en proyecto',
-            icon: Icons.work,
-            status: TimelineStatus.current,
-            color: AppColors.accent,
-          ),
-
-          _buildTimelineItemWithTime(
-            time: '14:00 - 15:00',
-            title: 'Almuerzo con María',
-            icon: Icons.restaurant,
-            status: TimelineStatus.upcoming,
-            color: AppColors.secondary,
-          ),
-
-          _buildTimelineItemWithTime(
-            time: '16:00 - 17:00',
-            title: 'Revisión finanzas',
-            icon: Icons.attach_money,
-            status: TimelineStatus.upcoming,
-            color: AppColors.accentGreen,
-          ),
-
-          _buildTimelineItemWithTime(
-            time: '19:00 - 20:00',
-            title: 'Meditación',
-            icon: Icons.self_improvement,
-            status: TimelineStatus.upcoming,
-            color: AppColors.info,
-          ),
-
-          const SizedBox(height: 16),
-
-          // Ver más
-          InkWell(
-            onTap: () {
-              // Navegar a agenda completa
-            },
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceVariantDark.withOpacity(0.5),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-              ),
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Ver agenda completa',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondaryDark,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.arrow_forward,
-                      color: AppColors.textSecondaryDark,
-                      size: 14,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+            )
+            .toList(),
       ),
     );
   }
 
-  // Función auxiliar para construir items de timeline
   Widget _buildTimelineItemWithTime({
     required String time,
     required String title,
@@ -1037,177 +934,130 @@ class _HomeContentPageState extends State<HomeContentPage> {
     required TimelineStatus status,
     required Color color,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+    final done = status == TimelineStatus.completed;
+    final current = status == TimelineStatus.current;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: current
+            ? color.withOpacity(0.1)
+            : AppColors.surfaceVariantDark.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: current ? color.withOpacity(0.35) : AppColors.borderDark,
+        ),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tiempo
-          SizedBox(
-            width: 70,
-            child: Text(
-              time,
-              style: TextStyle(
-                color: status == TimelineStatus.current
-                    ? AppColors.accent
-                    : AppColors.textTertiaryDark,
-                fontSize: 11,
-                fontWeight: status == TimelineStatus.current
-                    ? FontWeight.bold
-                    : FontWeight.normal,
-              ),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: done ? color : color.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              done ? Icons.check : icon,
+              size: 18,
+              color: done ? Colors.white : color,
             ),
           ),
-
-          // Línea vertical y punto
-          Column(
-            children: [
-              Container(
-                width: 2,
-                height: 8,
-                color: status == TimelineStatus.completed
-                    ? color
-                    : AppColors.borderDark,
-              ),
-              Container(
-                width: 12,
-                height: 12,
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: status == TimelineStatus.current
-                      ? color
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: status == TimelineStatus.completed
-                        ? color
-                        : AppColors.borderDark,
-                    width: 2,
-                  ),
-                ),
-                child: status == TimelineStatus.completed
-                    ? const Icon(Icons.check, size: 8, color: Colors.white)
-                    : null,
-              ),
-              Container(
-                width: 2,
-                height: 24,
-                color: status == TimelineStatus.completed
-                    ? color.withOpacity(0.5)
-                    : AppColors.borderDark,
-              ),
-            ],
-          ),
-
-          const SizedBox(width: 12),
-
-          // Contenido
+          const SizedBox(width: 10),
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: status == TimelineStatus.current
-                    ? color.withOpacity(0.1)
-                    : AppColors.surfaceVariantDark.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: status == TimelineStatus.current
-                      ? color.withOpacity(0.3)
-                      : Colors.transparent,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(icon, color: color, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        color: AppColors.textPrimaryDark,
-                        fontSize: 14,
-                        fontWeight: status == TimelineStatus.current
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                      ),
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryDark,
+                    fontWeight: current ? FontWeight.w700 : FontWeight.w500,
                   ),
-                  if (status == TimelineStatus.current)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        'Ahora',
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+                ),
+                Text(
+                  time,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondaryDark,
+                  ),
+                ),
+              ],
             ),
           ),
+          if (current)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Ahora',
+                style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
         ],
       ),
     );
   }
 
   Widget _buildHabitsCard() {
+    final habits = [
+      ('Meditar', Icons.self_improvement, true),
+      ('Ejercicio', Icons.directions_run, true),
+      ('Agua 2L', Icons.water_drop, false),
+      ('Lectura', Icons.menu_book, false),
+      ('Dormir 8h', Icons.nightlight, true),
+    ];
+
     return AscendCardWithTitle(
-      title: 'Hábitos del Día',
+      title: 'Hábitos del día',
       icon: Icons.track_changes,
       iconColor: AppColors.accentGreen,
+      trailing: Text(
+        '${habits.where((h) => h.$3).length}/${habits.length}',
+        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+      ),
       content: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [
-          _buildHabitChip('Meditar', Icons.self_improvement, true),
-          _buildHabitChip('Ejercicio', Icons.directions_run, true),
-          _buildHabitChip('Agua 2L', Icons.water_drop, false),
-          _buildHabitChip('Lectura', Icons.menu_book, false),
-          _buildHabitChip('Dormir 8h', Icons.nightlight, true),
-        ],
+        spacing: 8,
+        runSpacing: 8,
+        children: habits.map((h) => _buildHabitChip(h.$1, h.$2, h.$3)).toList(),
       ),
     );
   }
 
   Widget _buildHabitChip(String label, IconData icon, bool completed) {
     return Container(
-      width: 70,
-      height: 70,
+      constraints: const BoxConstraints(minWidth: 110),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: completed
-            ? AppColors.primary.withOpacity(0.2)
+            ? AppColors.primary.withOpacity(0.16)
             : AppColors.surfaceVariantDark.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: completed ? AppColors.primary : AppColors.borderDark,
+          color: completed ? AppColors.primary.withOpacity(0.4) : AppColors.borderDark,
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             icon,
+            size: 16,
             color: completed ? AppColors.primary : AppColors.textTertiaryDark,
-            size: 24,
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: completed
-                  ? AppColors.textPrimaryDark
-                  : AppColors.textTertiaryDark,
-              fontSize: 10,
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: completed ? AppColors.textPrimaryDark : AppColors.textSecondaryDark,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -1939,10 +1789,78 @@ class PlaceholderPage extends StatelessWidget {
 // PROFILE PAGE
 // ============================================================================
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   final String displayName;
 
   const ProfilePage({super.key, required this.displayName});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final _weightController = TextEditingController();
+  final _heightController = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHealthProfile();
+  }
+
+  Future<void> _loadHealthProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('settings')
+        .doc('health_profile')
+        .get();
+
+    final data = doc.data();
+    if (data == null) return;
+
+    _weightController.text = (data['weightKg'] ?? '').toString();
+    _heightController.text = (data['heightCm'] ?? '').toString();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _saveHealthProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    setState(() => _saving = true);
+
+    final weight = double.tryParse(_weightController.text.trim());
+    final height = double.tryParse(_heightController.text.trim());
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('settings')
+        .doc('health_profile')
+        .set({
+          'weightKg': weight,
+          'heightCm': height,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+    if (mounted) {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Datos guardados ✅')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _weightController.dispose();
+    _heightController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1955,8 +1873,6 @@ class ProfilePage extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 24),
-
-            // Avatar
             Container(
               width: 100,
               height: 100,
@@ -1966,8 +1882,7 @@ class ProfilePage extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  (user?.displayName?[0] ?? user?.email[0] ?? 'U')
-                      .toUpperCase(),
+                  (user?.displayName?[0] ?? user?.email[0] ?? 'U').toUpperCase(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 40,
@@ -1976,28 +1891,59 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
-
             Text(
               user?.displayName ?? 'Usuario',
-              style: AppTextStyles.h2.copyWith(
-                color: AppColors.textPrimaryDark,
-              ),
+              style: AppTextStyles.h2.copyWith(color: AppColors.textPrimaryDark),
             ),
-
             const SizedBox(height: 8),
-
             Text(
               user?.email ?? '',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondaryDark,
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryDark),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceDark,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.borderDark),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Perfil de salud',
+                    style: AppTextStyles.h4.copyWith(color: AppColors.textPrimaryDark),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _weightController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Peso (kg)'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _heightController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Altura (cm)'),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: _saving ? null : _saveHealthProfile,
+                    icon: const Icon(Icons.save),
+                    label: Text(_saving ? 'Guardando...' : 'Guardar datos'),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Google Health: integración planificada para la pestaña Salud (pasos, calorías, etc.).',
+                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(height: 32),
-
-            // Botón cerrar sesión
+            const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () async {
                 await authProvider.signOut();
@@ -2009,10 +1955,7 @@ class ProfilePage extends StatelessWidget {
               label: const Text('Cerrar Sesión'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               ),
             ),
           ],

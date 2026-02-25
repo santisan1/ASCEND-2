@@ -421,48 +421,61 @@ class _HabitsPageState extends State<HabitsPage> {
         emoji = '🚀';
     }
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 64)),
-            const SizedBox(height: 24),
-            Text(
-              message,
-              style: AppTextStyles.h3.copyWith(
-                color: AppColors.textPrimaryDark,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(emoji, style: const TextStyle(fontSize: 56)),
+                    const SizedBox(height: 16),
+                    Text(
+                      message,
+                      style: AppTextStyles.h3.copyWith(
+                        color: AppColors.textPrimaryDark,
+                        fontSize: 22,
+                      ),
+                      textAlign: TextAlign.center,
+                      softWrap: true,
+                    ),
+                    if (_currentFilter == HabitFilter.todos) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'Comenzá tu viaje de crecimiento personal',
+                        style: const TextStyle(
+                          color: AppColors.textSecondaryDark,
+                          fontSize: 15,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: () => _showAddHabitDialog(),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Crear mi primer hábito'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-              textAlign: TextAlign.center,
             ),
-            if (_currentFilter == HabitFilter.todos) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Comenzá tu viaje de crecimiento personal',
-                style: TextStyle(
-                  color: AppColors.textSecondaryDark,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () => _showAddHabitDialog(),
-                icon: const Icon(Icons.add),
-                label: const Text('Crear mi primer hábito'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
