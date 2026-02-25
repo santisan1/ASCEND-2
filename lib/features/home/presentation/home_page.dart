@@ -3,14 +3,13 @@ import 'package:ascend/features/finance/presentation/pages/finance_home_page.dar
 import 'package:ascend/features/finance/domain/finance_provider.dart';
 import 'package:ascend/features/habits/presentation/habits_page.dart';
 import 'package:ascend/features/habits/domain/habits_provider.dart';
-import 'package:ascend/features/nutrition/presentation/food_stock_page.dart';
+import 'package:ascend/nueva_pagina.dart';
 import 'package:ascend/features/notifications/presentation/notification_settings_page.dart';
 import 'package:ascend/features/notifications/domain/notification_preferences_provider.dart';
 import 'package:ascend/features/wellness/presentation/spirituality_page.dart';
-import 'package:ascend/features/wellness/presentation/health_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -59,8 +58,7 @@ class _HomePageState extends State<HomePage> {
     final List<Widget> _pages = [
       HomeContentPage(displayName: displayName),
       const FinanceHomePage(),
-      const HabitsPage(),
-      const HealthPage(),
+      const HabitsPage(), // <--
       const FoodStockPage(),
       ProfilePage(displayName: displayName),
     ];
@@ -566,16 +564,57 @@ class _HomeContentPageState extends State<HomeContentPage> {
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      children: [
-                        _buildDayCard(),
-                        const SizedBox(height: 16),
-                        _buildHabitsCard(),
-                        const SizedBox(height: 16),
-                        _buildKPIsCard(),
-                        const SizedBox(height: 16),
-                        _buildRemindersCard(),
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isCompact = constraints.maxWidth < 900;
+                        if (isCompact) {
+                          return Column(
+                            children: [
+                              _buildDayCard(),
+                              const SizedBox(height: 16),
+                              _buildHabitsCard(),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 4,
+                          child: Column(
+                            children: [
+                              _buildKPIsCard(),
+                              const SizedBox(height: 16),
+                              _buildRemindersCard(),
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 6,
+                              child: Column(
+                                children: [
+                                  _buildDayCard(),
+                                  const SizedBox(height: 16),
+                                  _buildHabitsCard(),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 4,
+                              child: Column(
+                                children: [
+                                  _buildKPIsCard(),
+                                  const SizedBox(height: 16),
+                                  _buildRemindersCard(),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
 
