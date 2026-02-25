@@ -9,6 +9,7 @@ import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'app/routes/app_routes.dart';
 import 'features/auth/domain/auth_provider.dart';
+import 'features/notifications/domain/notification_preferences_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => HabitsProvider()),
         ChangeNotifierProvider(create: (_) => FinanceProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationPreferencesProvider()),
       ],
       child: MaterialApp(
         title: 'ASCEND',
