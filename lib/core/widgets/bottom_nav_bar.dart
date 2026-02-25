@@ -45,9 +45,14 @@ class BottomNavBar extends StatelessWidget {
             label: 'Hábitos',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            activeIcon: Icon(Icons.calendar_today),
-            label: 'Planning',
+            icon: Icon(Icons.favorite_border),
+            activeIcon: Icon(Icons.favorite),
+            label: 'Salud',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.restaurant_menu_outlined),
+            activeIcon: Icon(Icons.restaurant_menu),
+            label: 'Comidas',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
