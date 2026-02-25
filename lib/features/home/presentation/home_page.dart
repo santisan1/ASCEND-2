@@ -38,6 +38,35 @@ class PriorityItem {
   });
 }
 
+
+class DayPlanItem {
+  final String time;
+  final String title;
+  final TimelineStatus status;
+  final IconData icon;
+  final Color color;
+
+  const DayPlanItem({
+    required this.time,
+    required this.title,
+    required this.status,
+    required this.icon,
+    required this.color,
+  });
+}
+
+class HabitSummaryItem {
+  final String label;
+  final IconData icon;
+  final bool completed;
+
+  const HabitSummaryItem({
+    required this.label,
+    required this.icon,
+    required this.completed,
+  });
+}
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -441,27 +470,10 @@ class HomeContentPage extends StatefulWidget {
 
 class _HomeContentPageState extends State<HomeContentPage> {
   final ScrollController _scrollController = ScrollController();
-  bool _showRefreshHint = true;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(() {
-      if (_scrollController.offset > 50 && _showRefreshHint) {
-        setState(() {
-          _showRefreshHint = false;
-        });
-      }
-    });
-
-    // Ocultar hint después de 5 segundos
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted && _showRefreshHint) {
-        setState(() {
-          _showRefreshHint = false;
-        });
-      }
-    });
   }
 
   @override
@@ -634,7 +646,6 @@ class _HomeContentPageState extends State<HomeContentPage> {
                 ],
               ),
             ),
-          ),
 
           // Botón de refresh flotante
           Positioned(
