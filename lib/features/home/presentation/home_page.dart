@@ -3,13 +3,14 @@ import 'package:ascend/features/finance/presentation/pages/finance_home_page.dar
 import 'package:ascend/features/finance/domain/finance_provider.dart';
 import 'package:ascend/features/habits/presentation/habits_page.dart';
 import 'package:ascend/features/habits/domain/habits_provider.dart';
-import 'package:ascend/nueva_pagina.dart';
+import 'package:ascend/features/nutrition/presentation/food_stock_page.dart' as nutrition;
 import 'package:ascend/features/notifications/presentation/notification_settings_page.dart';
 import 'package:ascend/features/notifications/domain/notification_preferences_provider.dart';
 import 'package:ascend/features/wellness/presentation/spirituality_page.dart';
+import 'package:ascend/features/wellness/presentation/health_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth;
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -17,9 +18,6 @@ import '../../../core/widgets/bottom_nav_bar.dart';
 import '../../../features/auth/domain/auth_provider.dart' as local_auth;
 import '../../../app/routes/app_routes.dart';
 
-// ... tus imports existentes
-
-// Agrega esto ANTES de class HomePage:
 enum TimelineStatus { completed, current, upcoming }
 
 enum PriorityLevel { high, medium, low }
@@ -87,8 +85,9 @@ class _HomePageState extends State<HomePage> {
     final List<Widget> _pages = [
       HomeContentPage(displayName: displayName),
       const FinanceHomePage(),
-      const HabitsPage(), // <--
-      const FoodStockPage(),
+      const HabitsPage(),
+      const HealthPage(),
+      const nutrition.FoodStockPage(),
       ProfilePage(displayName: displayName),
     ];
 
@@ -113,7 +112,6 @@ class _HomePageState extends State<HomePage> {
           : null,
     );
   }
-  // ... tus otros métodos existentes...
 
   Widget _buildPrioritiesSection() {
     final List<PriorityItem> priorities = [
@@ -257,7 +255,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // MODIFICAR _showQuickAddDialog:
   void _showQuickAddDialog() {
     showModalBottomSheet(
       context: context,
@@ -528,44 +525,17 @@ class _HomeContentPageState extends State<HomeContentPage> {
     return SafeArea(
       child: Stack(
         children: [
-          RefreshIndicator(
-            onRefresh: _refreshData,
-            color: AppColors.primary,
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 100),
-              child: Column(
-                children: [
-                  // Indicador de pull to refresh visible
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    color: AppColors.backgroundDark,
-                    child: Column(
-                      children: [
-                        if (_showRefreshHint)
-                          Column(
-                            children: [
-                              Icon(
-                                Icons.arrow_downward,
-                                color: AppColors.primary,
-                                size: 24,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Desliza hacia abajo para actualizar',
-                                style: TextStyle(
-                                  color: AppColors.textSecondaryDark,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-                          ),
-                        _buildGlassHeader(context, widget.displayName),
-                      ],
-                    ),
-                  ),
+          SingleChildScrollView(
+            controller: _scrollController,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 100),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  color: AppColors.backgroundDark,
+                  child: _buildGlassHeader(context, widget.displayName),
+                ),
 
                   const SizedBox(height: 24),
                   _buildWelcomeCard(widget.displayName),
@@ -576,57 +546,16 @@ class _HomeContentPageState extends State<HomeContentPage> {
                   const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isCompact = constraints.maxWidth < 900;
-                        if (isCompact) {
-                          return Column(
-                            children: [
-                              _buildDayCard(),
-                              const SizedBox(height: 16),
-                              _buildHabitsCard(),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          flex: 4,
-                          child: Column(
-                            children: [
-                              _buildKPIsCard(),
-                              const SizedBox(height: 16),
-                              _buildRemindersCard(),
-                            ],
-                          );
-                        }
-
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              flex: 6,
-                              child: Column(
-                                children: [
-                                  _buildDayCard(),
-                                  const SizedBox(height: 16),
-                                  _buildHabitsCard(),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              flex: 4,
-                              child: Column(
-                                children: [
-                                  _buildKPIsCard(),
-                                  const SizedBox(height: 16),
-                                  _buildRemindersCard(),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                    child: Column(
+                      children: [
+                        _buildDayCard(),
+                        const SizedBox(height: 16),
+                        _buildHabitsCard(),
+                        const SizedBox(height: 16),
+                        _buildKPIsCard(),
+                        const SizedBox(height: 16),
+                        _buildRemindersCard(),
+                      ],
                     ),
                   ),
 
@@ -699,7 +628,7 @@ class _HomeContentPageState extends State<HomeContentPage> {
               ),
               InkWell(
                 onTap: () {
-                  // Navegar a perfil (índice 4)
+                  // Navegar a perfil
                 },
                 child: Container(
                   width: 40,
@@ -727,7 +656,6 @@ class _HomeContentPageState extends State<HomeContentPage> {
     );
   }
 
-  // REEMPLAZAR _buildWelcomeCard con:
   Widget _buildWelcomeCard(String displayName) {
     final hour = DateTime.now().hour;
     String greeting = 'Buenos días';
@@ -915,32 +843,55 @@ class _HomeContentPageState extends State<HomeContentPage> {
   }
 
   Widget _buildDayCard() {
-    final items = [
-      ('09:00', 'Reunión equipo', TimelineStatus.completed, Icons.videocam, AppColors.primary),
-      ('Ahora', 'Trabajo en proyecto', TimelineStatus.current, Icons.work, AppColors.accent),
-      ('16:00', 'Revisión finanzas', TimelineStatus.upcoming, Icons.attach_money, AppColors.accentGreen),
+    const items = [
+      DayPlanItem(
+        time: '09:00',
+        title: 'Reunión equipo',
+        status: TimelineStatus.completed,
+        icon: Icons.videocam,
+        color: AppColors.primary,
+      ),
+      DayPlanItem(
+        time: 'Ahora',
+        title: 'Trabajo en proyecto',
+        status: TimelineStatus.current,
+        icon: Icons.work,
+        color: AppColors.accent,
+      ),
+      DayPlanItem(
+        time: '16:00',
+        title: 'Revisión finanzas',
+        status: TimelineStatus.upcoming,
+        icon: Icons.attach_money,
+        color: AppColors.accentGreen,
+      ),
     ];
+
+    final completedCount = items
+        .where((item) => item.status == TimelineStatus.completed)
+        .length;
 
     return AscendCardWithTitle(
       title: 'Tu día hoy',
       icon: Icons.calendar_today,
       iconColor: AppColors.primary,
       trailing: Text(
-        '${items.where((e) => e.$3 == TimelineStatus.completed).length}/${items.length} listo',
-        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+        '$completedCount/${items.length} listo',
+        style: AppTextStyles.bodySmall.copyWith(
+          color: AppColors.textSecondaryDark,
+        ),
       ),
       content: Column(
-        children: items
-            .map(
-              (item) => _buildTimelineItemWithTime(
-                time: item.$1,
-                title: item.$2,
-                icon: item.$4,
-                status: item.$3,
-                color: item.$5,
-              ),
-            )
-            .toList(),
+        children: [
+          for (final item in items)
+            _buildTimelineItemWithTime(
+              time: item.time,
+              title: item.title,
+              icon: item.icon,
+              status: item.status,
+              color: item.color,
+            ),
+        ],
       ),
     );
   }
@@ -1022,26 +973,45 @@ class _HomeContentPageState extends State<HomeContentPage> {
   }
 
   Widget _buildHabitsCard() {
-    final habits = [
-      ('Meditar', Icons.self_improvement, true),
-      ('Ejercicio', Icons.directions_run, true),
-      ('Agua 2L', Icons.water_drop, false),
-      ('Lectura', Icons.menu_book, false),
-      ('Dormir 8h', Icons.nightlight, true),
+    const habits = [
+      HabitSummaryItem(label: 'Meditar', icon: Icons.self_improvement, completed: true),
+      HabitSummaryItem(label: 'Ejercicio', icon: Icons.directions_run, completed: true),
+      HabitSummaryItem(label: 'Agua 2L', icon: Icons.water_drop, completed: false),
+      HabitSummaryItem(label: 'Lectura', icon: Icons.menu_book, completed: false),
+      HabitSummaryItem(label: 'Dormir 8h', icon: Icons.nightlight, completed: true),
     ];
+
+    final completedCount = habits.where((habit) => habit.completed).length;
 
     return AscendCardWithTitle(
       title: 'Hábitos del día',
       icon: Icons.track_changes,
       iconColor: AppColors.accentGreen,
       trailing: Text(
-        '${habits.where((h) => h.$3).length}/${habits.length}',
-        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+        '$completedCount/${habits.length}',
+        style: AppTextStyles.bodySmall.copyWith(
+          color: AppColors.textSecondaryDark,
+        ),
       ),
-      content: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: habits.map((h) => _buildHabitChip(h.$1, h.$2, h.$3)).toList(),
+      content: Column(
+        children: [
+          LinearProgressIndicator(
+            value: habits.isEmpty ? 0 : completedCount / habits.length,
+            minHeight: 8,
+            borderRadius: BorderRadius.circular(999),
+            backgroundColor: AppColors.surfaceVariantDark,
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentGreen),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final habit in habits)
+                _buildHabitChip(habit.label, habit.icon, habit.completed),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1122,7 +1092,6 @@ class _HomeContentPageState extends State<HomeContentPage> {
     );
   }
 
-  // REEMPLAZAR _buildKPICircle con:
   Widget _buildKPICircle(
     String label,
     double value,
@@ -1641,69 +1610,6 @@ class ProfilePage extends StatefulWidget {
   final String displayName;
 
   const ProfilePage({super.key, required this.displayName});
-
-  @override
-  State<ProfilePage> createState() => _ProfilePageState();
-}
-
-class _ProfilePageState extends State<ProfilePage> {
-  final _weightController = TextEditingController();
-  final _heightController = TextEditingController();
-  bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadHealthProfile();
-  }
-
-  Future<void> _loadHealthProfile() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('settings')
-        .doc('health_profile')
-        .get();
-
-    final data = doc.data();
-    if (data == null) return;
-
-    _weightController.text = (data['weightKg'] ?? '').toString();
-    _heightController.text = (data['heightCm'] ?? '').toString();
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _saveHealthProfile() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    setState(() => _saving = true);
-
-    final weight = double.tryParse(_weightController.text.trim());
-    final height = double.tryParse(_heightController.text.trim());
-
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('settings')
-        .doc('health_profile')
-        .set({
-          'weightKg': weight,
-          'heightCm': height,
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-
-class ProfilePage extends StatefulWidget {
-  final String displayName;
-
-  @override
-  void dispose() {
-    _weightController.dispose();
-    _heightController.dispose();
-    super.dispose();
-  }
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
