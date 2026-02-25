@@ -4,6 +4,7 @@ import 'package:ascend/features/finance/domain/finance_provider.dart';
 import 'package:ascend/features/habits/presentation/habits_page.dart';
 import 'package:ascend/features/habits/domain/habits_provider.dart';
 import 'package:ascend/nueva_pagina.dart';
+import 'package:ascend/features/nutrition/presentation/food_stock_page.dart';
 import 'package:ascend/features/notifications/presentation/notification_settings_page.dart';
 import 'package:ascend/features/notifications/domain/notification_preferences_provider.dart';
 import 'package:ascend/features/wellness/presentation/spirituality_page.dart';
@@ -59,7 +60,7 @@ class _HomePageState extends State<HomePage> {
       HomeContentPage(displayName: displayName),
       const FinanceHomePage(),
       const HabitsPage(), // <--
-      NuevaPagina(),
+      const FoodStockPage(),
       ProfilePage(displayName: displayName),
     ];
 

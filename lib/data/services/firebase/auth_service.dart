@@ -2,11 +2,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_model.dart';
+import '../../../core/services/user_template_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final UserTemplateService _userTemplateService = UserTemplateService();
 
   // Stream del usuario actual
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -38,6 +40,7 @@ class AuthService {
       // Crear documento en Firestore
       final userModel = UserModel.fromFirebaseUser(user);
       await _createUserDocument(userModel);
+      await _userTemplateService.ensureUserTemplate(user.uid);
 
       return userModel;
     } on FirebaseAuthException catch (e) {
@@ -63,6 +66,7 @@ class AuthService {
 
       // Actualizar último login
       await _updateLastLogin(user.uid);
+      await _userTemplateService.ensureUserTemplate(user.uid);
 
       // Obtener datos de Firestore
       return await getUserFromFirestore(user.uid);
@@ -101,10 +105,12 @@ class AuthService {
         // Crear documento para nuevo usuario
         final userModel = UserModel.fromFirebaseUser(user);
         await _createUserDocument(userModel);
+        await _userTemplateService.ensureUserTemplate(user.uid);
         return userModel;
       } else {
         // Actualizar último login
         await _updateLastLogin(user.uid);
+        await _userTemplateService.ensureUserTemplate(user.uid);
         return await getUserFromFirestore(user.uid);
       }
     } on FirebaseAuthException catch (e) {
