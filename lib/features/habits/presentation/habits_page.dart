@@ -161,6 +161,9 @@ class _HabitsPageState extends State<HabitsPage> {
                 totalHabits: habitsProvider.habits.length,
               ),
 
+            if (_viewMode == HabitViewMode.list)
+              _buildWeeklyMonthlyInsights(habitsProvider),
+
             // Contenido según el modo de vista
             Expanded(
               child: habitsProvider.isLoading
@@ -251,6 +254,98 @@ class _HabitsPageState extends State<HabitsPage> {
     );
   }
 
+  Widget _buildWeeklyMonthlyInsights(HabitsProvider provider) {
+    final weekly = provider.getWeeklyConsistency();
+    final monthly = provider.getMonthlyConsistencyByWeek();
+    final atRisk = provider.getAtRiskHabits();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariantDark.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Trackeo semanal + mensual',
+            style: AppTextStyles.h4.copyWith(color: AppColors.textPrimaryDark),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Semana actual: ${(weekly * 100).toStringAsFixed(0)}% de consistencia',
+            style: TextStyle(color: AppColors.textSecondaryDark, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          ...monthly.entries.map(
+            (entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 56,
+                    child: Text(
+                      entry.key,
+                      style: const TextStyle(
+                        color: AppColors.textSecondaryDark,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: entry.value,
+                        minHeight: 8,
+                        backgroundColor: AppColors.surfaceDark,
+                        valueColor: const AlwaysStoppedAnimation(
+                          AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${(entry.value * 100).toStringAsFixed(0)}%',
+                    style: const TextStyle(
+                      color: AppColors.textPrimaryDark,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (atRisk.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.warning.withOpacity(0.35)),
+              ),
+              child: Text(
+                '⚠️ Hoy en riesgo: ${atRisk.map((h) => h.name).take(2).join(', ')}${atRisk.length > 2 ? '...' : ''}',
+                style: const TextStyle(
+                  color: AppColors.warning,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildTimelineView(HabitsProvider provider) {
     final habitsToday = provider.habitsDueToday;
 
@@ -326,48 +421,61 @@ class _HabitsPageState extends State<HabitsPage> {
         emoji = '🚀';
     }
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 64)),
-            const SizedBox(height: 24),
-            Text(
-              message,
-              style: AppTextStyles.h3.copyWith(
-                color: AppColors.textPrimaryDark,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(emoji, style: const TextStyle(fontSize: 56)),
+                    const SizedBox(height: 16),
+                    Text(
+                      message,
+                      style: AppTextStyles.h3.copyWith(
+                        color: AppColors.textPrimaryDark,
+                        fontSize: 22,
+                      ),
+                      textAlign: TextAlign.center,
+                      softWrap: true,
+                    ),
+                    if (_currentFilter == HabitFilter.todos) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'Comenzá tu viaje de crecimiento personal',
+                        style: const TextStyle(
+                          color: AppColors.textSecondaryDark,
+                          fontSize: 15,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: () => _showAddHabitDialog(),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Crear mi primer hábito'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-              textAlign: TextAlign.center,
             ),
-            if (_currentFilter == HabitFilter.todos) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Comenzá tu viaje de crecimiento personal',
-                style: TextStyle(
-                  color: AppColors.textSecondaryDark,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () => _showAddHabitDialog(),
-                icon: const Icon(Icons.add),
-                label: const Text('Crear mi primer hábito'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

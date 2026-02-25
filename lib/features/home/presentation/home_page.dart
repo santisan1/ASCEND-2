@@ -1,13 +1,21 @@
 import 'package:ascend/core/widgets/ascend_card.dart';
 import 'package:ascend/features/finance/presentation/pages/finance_home_page.dart';
+import 'package:ascend/features/finance/domain/finance_provider.dart';
 import 'package:ascend/features/habits/presentation/habits_page.dart';
-import 'package:ascend/nueva_pagina.dart';
+import 'package:ascend/features/habits/domain/habits_provider.dart';
+import 'package:ascend/features/nutrition/presentation/food_stock_page.dart';
+import 'package:ascend/features/notifications/presentation/notification_settings_page.dart';
+import 'package:ascend/features/notifications/domain/notification_preferences_provider.dart';
+import 'package:ascend/features/wellness/presentation/spirituality_page.dart';
+import 'package:ascend/features/wellness/presentation/health_page.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth;
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/bottom_nav_bar.dart';
-import '../../../features/auth/domain/auth_provider.dart';
+import '../../../features/auth/domain/auth_provider.dart' as local_auth;
 import '../../../app/routes/app_routes.dart';
 
 // ... tus imports existentes
@@ -43,7 +51,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
+    final authProvider = context.watch<local_auth.AuthProvider>();
     final user = authProvider.user;
     final displayName =
         user?.displayName ?? user?.email.split('@')[0] ?? 'Usuario';
@@ -51,8 +59,9 @@ class _HomePageState extends State<HomePage> {
     final List<Widget> _pages = [
       HomeContentPage(displayName: displayName),
       const FinanceHomePage(),
-      const HabitsPage(), // <--
-      NuevaPagina(),
+      const HabitsPage(),
+      const HealthPage(),
+      const FoodStockPage(),
       ProfilePage(displayName: displayName),
     ];
 
@@ -509,21 +518,13 @@ class _HomeContentPageState extends State<HomeContentPage> {
     return SafeArea(
       child: Stack(
         children: [
-          NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              // Detectar cuando llega al top
-              if (notification is ScrollStartNotification) {
-                if (_scrollController.position.pixels == 0) {
-                  _refreshData();
-                  return true;
-                }
-              }
-              return false;
-            },
+          RefreshIndicator(
+            onRefresh: _refreshData,
+            color: AppColors.primary,
             child: SingleChildScrollView(
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 100), // Espacio extra
+              padding: const EdgeInsets.only(bottom: 100),
               child: Column(
                 children: [
                   // Indicador de pull to refresh visible
@@ -558,141 +559,22 @@ class _HomeContentPageState extends State<HomeContentPage> {
 
                   const SizedBox(height: 24),
                   _buildWelcomeCard(widget.displayName),
+                  const SizedBox(height: 16),
+                  _buildLifeInsightsCard(),
                   const SizedBox(height: 24),
-                  _buildPrioritiesSection(), // <-- AGREGÁ ESTA LÍNEA
-                  const SizedBox(height: 24), // <-- AGREGÁ ESTA LÍNEA
+                  _buildPrioritiesSection(),
+                  const SizedBox(height: 20),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Column(
                       children: [
-                        Expanded(
-                          flex: 6,
-                          child: Column(
-                            children: [
-                              _buildDayCard(),
-                              const SizedBox(height: 16),
-                              _buildHabitsCard(),
-                              const SizedBox(height: 32),
-
-                              // Widget adicional para ocupar espacio
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceVariantDark
-                                      .withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: AppColors.borderDark,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.trending_up,
-                                          color: AppColors.primary,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Progreso Mensual',
-                                          style: AppTextStyles.h4.copyWith(
-                                            color: AppColors.textPrimaryDark,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    LinearProgressIndicator(
-                                      value: 0.65,
-                                      backgroundColor:
-                                          AppColors.surfaceVariantDark,
-                                      color: AppColors.primary,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Consistencia',
-                                          style: TextStyle(
-                                            color: AppColors.textSecondaryDark,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        Text(
-                                          '65%',
-                                          style: TextStyle(
-                                            color: AppColors.primary,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          flex: 4,
-                          child: Column(
-                            children: [
-                              _buildKPIsCard(),
-                              const SizedBox(height: 16),
-                              _buildRemindersCard(),
-                              const SizedBox(height: 32),
-
-                              // Widget adicional
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceVariantDark
-                                      .withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: AppColors.borderDark,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.flag,
-                                          color: AppColors.accent,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Metas',
-                                          style: AppTextStyles.h4.copyWith(
-                                            color: AppColors.textPrimaryDark,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      '2 de 5 metas completadas esta semana',
-                                      style: TextStyle(
-                                        color: AppColors.textSecondaryDark,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        _buildDayCard(),
+                        const SizedBox(height: 16),
+                        _buildHabitsCard(),
+                        const SizedBox(height: 16),
+                        _buildKPIsCard(),
+                        const SizedBox(height: 16),
+                        _buildRemindersCard(),
                       ],
                     ),
                   ),
@@ -709,70 +591,7 @@ class _HomeContentPageState extends State<HomeContentPage> {
                   // Sección de consejos
                   _buildTipsSection(),
 
-                  // Footer con instrucciones
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceVariantDark.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          '💡 Consejo del día',
-                          style: AppTextStyles.h4.copyWith(
-                            color: AppColors.textPrimaryDark,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Revisa tus hábitos diarios para mantener la consistencia.',
-                          style: TextStyle(
-                            color: AppColors.textSecondaryDark,
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        InkWell(
-                          onTap: _refreshData,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.primary),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.refresh,
-                                  color: AppColors.primary,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Actualizar manualmente',
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ESPACIO FINAL PARA GARANTIZAR SCROLL
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                  const SizedBox(height: 56),
                 ],
               ),
             ),
@@ -1045,151 +864,37 @@ class _HomeContentPageState extends State<HomeContentPage> {
     );
   }
 
-  // REEMPLAZAR _buildDayCard con:
   Widget _buildDayCard() {
-    return Container(
-      padding: const EdgeInsets.only(top: 20, left: 20, right: 20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariantDark.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.borderDark),
+    final items = [
+      ('09:00', 'Reunión equipo', TimelineStatus.completed, Icons.videocam, AppColors.primary),
+      ('Ahora', 'Trabajo en proyecto', TimelineStatus.current, Icons.work, AppColors.accent),
+      ('16:00', 'Revisión finanzas', TimelineStatus.upcoming, Icons.attach_money, AppColors.accentGreen),
+    ];
+
+    return AscendCardWithTitle(
+      title: 'Tu día hoy',
+      icon: Icons.calendar_today,
+      iconColor: AppColors.primary,
+      trailing: Text(
+        '${items.where((e) => e.$3 == TimelineStatus.completed).length}/${items.length} listo',
+        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.calendar_today,
-                color: AppColors.primary,
-                size: 20,
+      content: Column(
+        children: items
+            .map(
+              (item) => _buildTimelineItemWithTime(
+                time: item.$1,
+                title: item.$2,
+                icon: item.$4,
+                status: item.$3,
+                color: item.$5,
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Tu Día Hoy',
-                style: AppTextStyles.h4.copyWith(
-                  color: AppColors.textPrimaryDark,
-                ),
-              ),
-              const Spacer(),
-              // Selector de día
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      'Hoy',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.arrow_drop_down,
-                      color: AppColors.primary,
-                      size: 16,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Timeline con estado actual destacado
-          _buildTimelineItemWithTime(
-            time: '09:00 - 10:00',
-            title: 'Reunión equipo',
-            icon: Icons.videocam,
-            status: TimelineStatus.completed,
-            color: AppColors.primary,
-          ),
-
-          _buildTimelineItemWithTime(
-            time: 'ACTUAL',
-            title: 'Trabajo en proyecto',
-            icon: Icons.work,
-            status: TimelineStatus.current,
-            color: AppColors.accent,
-          ),
-
-          _buildTimelineItemWithTime(
-            time: '14:00 - 15:00',
-            title: 'Almuerzo con María',
-            icon: Icons.restaurant,
-            status: TimelineStatus.upcoming,
-            color: AppColors.secondary,
-          ),
-
-          _buildTimelineItemWithTime(
-            time: '16:00 - 17:00',
-            title: 'Revisión finanzas',
-            icon: Icons.attach_money,
-            status: TimelineStatus.upcoming,
-            color: AppColors.accentGreen,
-          ),
-
-          _buildTimelineItemWithTime(
-            time: '19:00 - 20:00',
-            title: 'Meditación',
-            icon: Icons.self_improvement,
-            status: TimelineStatus.upcoming,
-            color: AppColors.info,
-          ),
-
-          const SizedBox(height: 16),
-
-          // Ver más
-          InkWell(
-            onTap: () {
-              // Navegar a agenda completa
-            },
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceVariantDark.withOpacity(0.5),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-              ),
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Ver agenda completa',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondaryDark,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.arrow_forward,
-                      color: AppColors.textSecondaryDark,
-                      size: 14,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+            )
+            .toList(),
       ),
     );
   }
 
-  // Función auxiliar para construir items de timeline
   Widget _buildTimelineItemWithTime({
     required String time,
     required String title,
@@ -1197,177 +902,130 @@ class _HomeContentPageState extends State<HomeContentPage> {
     required TimelineStatus status,
     required Color color,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+    final done = status == TimelineStatus.completed;
+    final current = status == TimelineStatus.current;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: current
+            ? color.withOpacity(0.1)
+            : AppColors.surfaceVariantDark.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: current ? color.withOpacity(0.35) : AppColors.borderDark,
+        ),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tiempo
-          SizedBox(
-            width: 70,
-            child: Text(
-              time,
-              style: TextStyle(
-                color: status == TimelineStatus.current
-                    ? AppColors.accent
-                    : AppColors.textTertiaryDark,
-                fontSize: 11,
-                fontWeight: status == TimelineStatus.current
-                    ? FontWeight.bold
-                    : FontWeight.normal,
-              ),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: done ? color : color.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              done ? Icons.check : icon,
+              size: 18,
+              color: done ? Colors.white : color,
             ),
           ),
-
-          // Línea vertical y punto
-          Column(
-            children: [
-              Container(
-                width: 2,
-                height: 8,
-                color: status == TimelineStatus.completed
-                    ? color
-                    : AppColors.borderDark,
-              ),
-              Container(
-                width: 12,
-                height: 12,
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: status == TimelineStatus.current
-                      ? color
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: status == TimelineStatus.completed
-                        ? color
-                        : AppColors.borderDark,
-                    width: 2,
-                  ),
-                ),
-                child: status == TimelineStatus.completed
-                    ? const Icon(Icons.check, size: 8, color: Colors.white)
-                    : null,
-              ),
-              Container(
-                width: 2,
-                height: 24,
-                color: status == TimelineStatus.completed
-                    ? color.withOpacity(0.5)
-                    : AppColors.borderDark,
-              ),
-            ],
-          ),
-
-          const SizedBox(width: 12),
-
-          // Contenido
+          const SizedBox(width: 10),
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: status == TimelineStatus.current
-                    ? color.withOpacity(0.1)
-                    : AppColors.surfaceVariantDark.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: status == TimelineStatus.current
-                      ? color.withOpacity(0.3)
-                      : Colors.transparent,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(icon, color: color, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        color: AppColors.textPrimaryDark,
-                        fontSize: 14,
-                        fontWeight: status == TimelineStatus.current
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                      ),
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.textPrimaryDark,
+                    fontWeight: current ? FontWeight.w700 : FontWeight.w500,
                   ),
-                  if (status == TimelineStatus.current)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        'Ahora',
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+                ),
+                Text(
+                  time,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondaryDark,
+                  ),
+                ),
+              ],
             ),
           ),
+          if (current)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Ahora',
+                style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
         ],
       ),
     );
   }
 
   Widget _buildHabitsCard() {
+    final habits = [
+      ('Meditar', Icons.self_improvement, true),
+      ('Ejercicio', Icons.directions_run, true),
+      ('Agua 2L', Icons.water_drop, false),
+      ('Lectura', Icons.menu_book, false),
+      ('Dormir 8h', Icons.nightlight, true),
+    ];
+
     return AscendCardWithTitle(
-      title: 'Hábitos del Día',
+      title: 'Hábitos del día',
       icon: Icons.track_changes,
       iconColor: AppColors.accentGreen,
+      trailing: Text(
+        '${habits.where((h) => h.$3).length}/${habits.length}',
+        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+      ),
       content: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [
-          _buildHabitChip('Meditar', Icons.self_improvement, true),
-          _buildHabitChip('Ejercicio', Icons.directions_run, true),
-          _buildHabitChip('Agua 2L', Icons.water_drop, false),
-          _buildHabitChip('Lectura', Icons.menu_book, false),
-          _buildHabitChip('Dormir 8h', Icons.nightlight, true),
-        ],
+        spacing: 8,
+        runSpacing: 8,
+        children: habits.map((h) => _buildHabitChip(h.$1, h.$2, h.$3)).toList(),
       ),
     );
   }
 
   Widget _buildHabitChip(String label, IconData icon, bool completed) {
     return Container(
-      width: 70,
-      height: 70,
+      constraints: const BoxConstraints(minWidth: 110),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: completed
-            ? AppColors.primary.withOpacity(0.2)
+            ? AppColors.primary.withOpacity(0.16)
             : AppColors.surfaceVariantDark.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: completed ? AppColors.primary : AppColors.borderDark,
+          color: completed ? AppColors.primary.withOpacity(0.4) : AppColors.borderDark,
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             icon,
+            size: 16,
             color: completed ? AppColors.primary : AppColors.textTertiaryDark,
-            size: 24,
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: completed
-                  ? AppColors.textPrimaryDark
-                  : AppColors.textTertiaryDark,
-              fontSize: 10,
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: completed ? AppColors.textPrimaryDark : AppColors.textSecondaryDark,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -1483,38 +1141,172 @@ class _HomeContentPageState extends State<HomeContentPage> {
     );
   }
 
+  Widget _buildLifeInsightsCard() {
+    final habitsProvider = context.watch<HabitsProvider>();
+    final financeProvider = context.watch<FinanceProvider>();
+    final notificationsProvider = context.watch<NotificationPreferencesProvider>();
+
+    final habitsScore = habitsProvider.getWeeklyConsistency();
+    final savingsRate = financeProvider.savingsRate.clamp(0.0, 1.0);
+    final notifScore = notificationsProvider.reminders.where((r) => r.enabled).isEmpty
+        ? 0.3
+        : 0.8;
+
+    final integralScore = ((habitsScore * 0.45) + (savingsRate * 0.35) + (notifScore * 0.2))
+        .clamp(0.0, 1.0);
+
+    final status = integralScore >= 0.75
+        ? 'verde'
+        : integralScore >= 0.45
+        ? 'amarillo'
+        : 'rojo';
+
+    final statusColor = status == 'verde'
+        ? AppColors.accentGreen
+        : status == 'amarillo'
+        ? AppColors.warning
+        : AppColors.error;
+
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.borderDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.insights, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Insights de vida (hoy)',
+                style: AppTextStyles.h4.copyWith(color: AppColors.textPrimaryDark),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  status.toUpperCase(),
+                  style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: integralScore,
+            minHeight: 9,
+            backgroundColor: AppColors.surfaceVariantDark,
+            valueColor: AlwaysStoppedAnimation(statusColor),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Índice integral: ${(integralScore * 100).toStringAsFixed(0)}% · Hábitos ${(habitsScore * 100).toStringAsFixed(0)}% · Finanzas ${(savingsRate * 100).toStringAsFixed(0)}%',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Sync notif: ${notificationsProvider.syncState.name}',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiaryDark),
+          ),
+          const SizedBox(height: 12),
+          if (userId != null)
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(userId)
+                  .collection('spiritual_entries')
+                  .orderBy('createdAt', descending: true)
+                  .limit(7)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                final count = snapshot.data?.docs.length ?? 0;
+                final spiritualityScore = (count / 7).clamp(0.0, 1.0);
+                return Text(
+                  'Espiritualidad (7 días): ${(spiritualityScore * 100).toStringAsFixed(0)}% (${count}/7 entradas)',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRemindersCard() {
+    final provider = context.watch<NotificationPreferencesProvider>();
+    final reminders = provider.reminders;
+    final active = reminders.where((r) => r.enabled).toList();
+    final now = DateTime.now();
+    final unseen = active.where((r) {
+      final seenAt = provider.lastSeenByModule[r.module];
+      if (seenAt == null) return true;
+      return seenAt.year != now.year || seenAt.month != now.month || seenAt.day != now.day;
+    }).length;
+
     return AscendCardWithTitle(
       title: 'Recordatorios',
       icon: Icons.notifications,
       iconColor: AppColors.accent,
-      trailing: Container(
-        width: 8,
-        height: 8,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.accent,
-        ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (unseen > 0)
+            Container(
+              margin: const EdgeInsets.only(right: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '$unseen',
+                style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
+              ),
+            ),
+          TextButton(
+            onPressed: () {
+              for (final r in active) {
+                provider.markModuleAsSeen(r.module);
+              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationSettingsPage(),
+                ),
+              );
+            },
+            child: const Text('Configurar'),
+          ),
+        ],
       ),
       content: Column(
         children: [
-          _buildReminderItem(
-            'Comprar leche',
-            'Pantry - Bajo stock',
-            AppColors.warning,
-          ),
-          const SizedBox(height: 12),
-          _buildReminderItem(
-            'Transferir a ahorros',
-            'Finanzas - Automático',
-            AppColors.accentGreen,
-          ),
-          const SizedBox(height: 12),
-          _buildReminderItem(
-            'Llamar a mamá',
-            'Social - 2 días',
-            AppColors.accent,
-          ),
+          if (active.isEmpty)
+            _buildReminderItem(
+              'Sin recordatorios activos',
+              'Activá módulos clave desde Configurar',
+              AppColors.textTertiaryDark,
+            )
+          else
+            ...active.take(3).map(
+              (item) => _buildReminderItem(
+                item.module,
+                '${item.hour.toString().padLeft(2, '0')}:${item.minute.toString().padLeft(2, '0')} · ${item.message}',
+                AppColors.accent,
+              ),
+            ),
         ],
       ),
     );
@@ -1568,6 +1360,15 @@ class _HomeContentPageState extends State<HomeContentPage> {
   Widget _buildModulesBar() {
     final List<Map<String, dynamic>> modules = [
       {
+        'title': 'Espiritualidad',
+        'icon': Icons.auto_stories,
+        'color': AppColors.accent,
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SpiritualityPage()),
+        ),
+      },
+      {
         'title': 'Hábitos',
         'icon': Icons.track_changes,
         'color': AppColors.primary,
@@ -1575,21 +1376,36 @@ class _HomeContentPageState extends State<HomeContentPage> {
       {
         'title': 'Agenda',
         'icon': Icons.calendar_today,
-        'color': AppColors.accent,
+        'color': AppColors.info,
       },
-      {'title': 'Social', 'icon': Icons.people, 'color': AppColors.info},
-      {'title': 'Academia', 'icon': Icons.school, 'color': AppColors.secondary},
+      {
+        'title': 'Relaciones',
+        'icon': Icons.people,
+        'color': AppColors.secondary,
+      },
       {
         'title': 'Finanzas',
         'icon': Icons.attach_money,
         'color': AppColors.accentGreen,
       },
-      {'title': 'Pantry', 'icon': Icons.kitchen, 'color': AppColors.warning},
-      {'title': 'Hogar', 'icon': Icons.home, 'color': AppColors.error},
       {
-        'title': 'KPIs',
-        'icon': Icons.analytics,
+        'title': 'Salud',
+        'icon': Icons.favorite,
+        'color': AppColors.warning,
+      },
+      {
+        'title': 'Hogar',
+        'icon': Icons.home,
+        'color': AppColors.error,
+      },
+      {
+        'title': 'Notifs',
+        'icon': Icons.notifications_active,
         'color': AppColors.primaryDark,
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const NotificationSettingsPage()),
+        ),
       },
     ];
 
@@ -1624,6 +1440,7 @@ class _HomeContentPageState extends State<HomeContentPage> {
                 module['title'] as String,
                 module['icon'] as IconData,
                 module['color'] as Color,
+                onTap: module['onTap'] as VoidCallback?,
               );
             }).toList(),
           ),
@@ -1632,30 +1449,39 @@ class _HomeContentPageState extends State<HomeContentPage> {
     );
   }
 
-  Widget _buildModuleButton(String label, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: color.withOpacity(0.3)),
+  Widget _buildModuleButton(
+    String label,
+    IconData icon,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: color.withOpacity(0.3)),
+            ),
+            child: Icon(icon, color: color, size: 24),
           ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: TextStyle(
-            color: AppColors.textSecondaryDark,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.textSecondaryDark,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1931,14 +1757,82 @@ class PlaceholderPage extends StatelessWidget {
 // PROFILE PAGE
 // ============================================================================
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   final String displayName;
 
   const ProfilePage({super.key, required this.displayName});
 
   @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final _weightController = TextEditingController();
+  final _heightController = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHealthProfile();
+  }
+
+  Future<void> _loadHealthProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('settings')
+        .doc('health_profile')
+        .get();
+
+    final data = doc.data();
+    if (data == null) return;
+
+    _weightController.text = (data['weightKg'] ?? '').toString();
+    _heightController.text = (data['heightCm'] ?? '').toString();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _saveHealthProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    setState(() => _saving = true);
+
+    final weight = double.tryParse(_weightController.text.trim());
+    final height = double.tryParse(_heightController.text.trim());
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('settings')
+        .doc('health_profile')
+        .set({
+          'weightKg': weight,
+          'heightCm': height,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+    if (mounted) {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Datos guardados ✅')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _weightController.dispose();
+    _heightController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
+    final authProvider = context.watch<local_auth.AuthProvider>();
     final user = authProvider.user;
 
     return SafeArea(
@@ -1947,8 +1841,6 @@ class ProfilePage extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 24),
-
-            // Avatar
             Container(
               width: 100,
               height: 100,
@@ -1958,8 +1850,7 @@ class ProfilePage extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  (user?.displayName?[0] ?? user?.email[0] ?? 'U')
-                      .toUpperCase(),
+                  (user?.displayName?[0] ?? user?.email[0] ?? 'U').toUpperCase(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 40,
@@ -1968,28 +1859,59 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
-
             Text(
               user?.displayName ?? 'Usuario',
-              style: AppTextStyles.h2.copyWith(
-                color: AppColors.textPrimaryDark,
-              ),
+              style: AppTextStyles.h2.copyWith(color: AppColors.textPrimaryDark),
             ),
-
             const SizedBox(height: 8),
-
             Text(
               user?.email ?? '',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textSecondaryDark,
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondaryDark),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceDark,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.borderDark),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Perfil de salud',
+                    style: AppTextStyles.h4.copyWith(color: AppColors.textPrimaryDark),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _weightController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Peso (kg)'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _heightController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Altura (cm)'),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: _saving ? null : _saveHealthProfile,
+                    icon: const Icon(Icons.save),
+                    label: Text(_saving ? 'Guardando...' : 'Guardar datos'),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Google Health: integración planificada para la pestaña Salud (pasos, calorías, etc.).',
+                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(height: 32),
-
-            // Botón cerrar sesión
+            const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () async {
                 await authProvider.signOut();
@@ -2001,10 +1923,7 @@ class ProfilePage extends StatelessWidget {
               label: const Text('Cerrar Sesión'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               ),
             ),
           ],
