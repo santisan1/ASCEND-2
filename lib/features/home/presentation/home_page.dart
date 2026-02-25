@@ -4,13 +4,12 @@ import 'package:ascend/features/finance/domain/finance_provider.dart';
 import 'package:ascend/features/habits/presentation/habits_page.dart';
 import 'package:ascend/features/habits/domain/habits_provider.dart';
 import 'package:ascend/nueva_pagina.dart';
-import 'package:ascend/features/nutrition/presentation/food_stock_page.dart';
 import 'package:ascend/features/notifications/presentation/notification_settings_page.dart';
 import 'package:ascend/features/notifications/domain/notification_preferences_provider.dart';
 import 'package:ascend/features/wellness/presentation/spirituality_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -574,7 +573,14 @@ class _HomeContentPageState extends State<HomeContentPage> {
                               _buildDayCard(),
                               const SizedBox(height: 16),
                               _buildHabitsCard(),
-                              const SizedBox(height: 16),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 4,
+                          child: Column(
+                            children: [
                               _buildKPIsCard(),
                               const SizedBox(height: 16),
                               _buildRemindersCard(),
