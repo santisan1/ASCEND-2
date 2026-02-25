@@ -1634,176 +1634,6 @@ class _HomeContentPageState extends State<HomeContentPage> {
 }
 
 // ============================================================================
-// PLACEHOLDER PAGES
-// ============================================================================
-// ... tus otros métodos existentes...
-
-Widget _buildPrioritiesSection() {
-  final List<PriorityItem> priorities = [
-    PriorityItem(
-      title: 'Entrega proyecto final',
-      module: 'Academia',
-      deadline: DateTime.now().add(const Duration(days: 2)),
-      priority: PriorityLevel.high,
-    ),
-    PriorityItem(
-      title: 'Comprar leche y huevos',
-      module: 'Pantry',
-      deadline: DateTime.now().add(const Duration(hours: 12)),
-      priority: PriorityLevel.medium,
-    ),
-    PriorityItem(
-      title: 'Llamar a mamá',
-      module: 'Social',
-      deadline: DateTime.now().add(const Duration(days: 1)),
-      priority: PriorityLevel.medium,
-    ),
-  ];
-
-  return AscendCardWithTitle(
-    title: 'Prioridades del Día',
-    icon: Icons.flag,
-    iconColor: AppColors.warning,
-    trailing: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        '${priorities.length} urgente${priorities.length > 1 ? 's' : ''}',
-        style: TextStyle(color: AppColors.warning, fontSize: 12),
-      ),
-    ),
-    content: Column(
-      children: priorities
-          .map((priority) => _buildPriorityItem(priority))
-          .toList(),
-    ),
-  );
-}
-
-Widget _buildPriorityItem(PriorityItem priority) {
-  final hoursLeft = priority.deadline.difference(DateTime.now()).inHours;
-
-  return Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: _getPriorityColor(priority.priority).withOpacity(0.1),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(
-        color: _getPriorityColor(priority.priority).withOpacity(0.3),
-      ),
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 8,
-          height: 40,
-          decoration: BoxDecoration(
-            color: _getPriorityColor(priority.priority),
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                priority.title,
-                style: const TextStyle(
-                  color: AppColors.textPrimaryDark,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceVariantDark,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      priority.module,
-                      style: TextStyle(
-                        color: AppColors.textTertiaryDark,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.access_time,
-                    size: 12,
-                    color: AppColors.textTertiaryDark,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    hoursLeft <= 24
-                        ? '$hoursLeft h'
-                        : '${(hoursLeft / 24).ceil()} d',
-                    style: TextStyle(
-                      color: AppColors.textTertiaryDark,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Icon(
-          Icons.arrow_forward_ios,
-          size: 16,
-          color: AppColors.textTertiaryDark,
-        ),
-      ],
-    ),
-  );
-}
-
-Color _getPriorityColor(PriorityLevel level) {
-  switch (level) {
-    case PriorityLevel.high:
-      return AppColors.error;
-    case PriorityLevel.medium:
-      return AppColors.warning;
-    case PriorityLevel.low:
-      return AppColors.info;
-  }
-}
-
-class PlaceholderPage extends StatelessWidget {
-  final String title;
-
-  const PlaceholderPage({super.key, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.construction, size: 64, color: AppColors.textTertiaryDark),
-          const SizedBox(height: 16),
-          Text(
-            '$title - En construcción',
-            style: AppTextStyles.h3.copyWith(color: AppColors.textPrimaryDark),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ============================================================================
 // PROFILE PAGE
 // ============================================================================
 
@@ -1811,6 +1641,69 @@ class ProfilePage extends StatefulWidget {
   final String displayName;
 
   const ProfilePage({super.key, required this.displayName});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final _weightController = TextEditingController();
+  final _heightController = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHealthProfile();
+  }
+
+  Future<void> _loadHealthProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('settings')
+        .doc('health_profile')
+        .get();
+
+    final data = doc.data();
+    if (data == null) return;
+
+    _weightController.text = (data['weightKg'] ?? '').toString();
+    _heightController.text = (data['heightCm'] ?? '').toString();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _saveHealthProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    setState(() => _saving = true);
+
+    final weight = double.tryParse(_weightController.text.trim());
+    final height = double.tryParse(_heightController.text.trim());
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('settings')
+        .doc('health_profile')
+        .set({
+          'weightKg': weight,
+          'heightCm': height,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+class ProfilePage extends StatefulWidget {
+  final String displayName;
+
+  @override
+  void dispose() {
+    _weightController.dispose();
+    _heightController.dispose();
+    super.dispose();
+  }
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
