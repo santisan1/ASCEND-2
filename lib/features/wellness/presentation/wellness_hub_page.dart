@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import 'health_page.dart';
 import 'spirituality_page.dart';
+import '../../nutrition/presentation/food_stock_page.dart';
 
 class WellnessHubPage extends StatelessWidget {
   const WellnessHubPage({super.key});
@@ -10,15 +11,16 @@ class WellnessHubPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: AppColors.backgroundDark,
         appBar: AppBar(
           backgroundColor: AppColors.surfaceDark,
-          title: const Text('Wellness'),
+          title: const Text('Wellness Hub'),
           bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.favorite), text: 'Salud'),
+              Tab(icon: Icon(Icons.restaurant_menu), text: 'Comidas'),
               Tab(icon: Icon(Icons.auto_stories), text: 'Espiritualidad'),
             ],
           ),
@@ -26,6 +28,7 @@ class WellnessHubPage extends StatelessWidget {
         body: const TabBarView(
           children: [
             HealthPage(),
+            FoodStockPage(),
             SpiritualityPage(),
           ],
         ),

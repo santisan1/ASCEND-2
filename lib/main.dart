@@ -21,9 +21,9 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF0A0E27),
-      systemNavigationBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
   runApp(const MyApp());
@@ -46,11 +46,8 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.dark,
-
-        // ELIMINAR initialRoute. Usar HOME:
-        home: const AuthGate(), // <-- EL NUEVO PUNTO DE ENTRADA
-        // Las rutas siguen sirviendo para la navegación interna (pushNamed)
+        themeMode: ThemeMode.light,
+        home: const AuthGate(),
         onGenerateRoute: AppRoutes.onGenerateRoute,
       ),
     );
