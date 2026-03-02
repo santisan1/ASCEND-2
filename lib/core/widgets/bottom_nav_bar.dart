@@ -47,7 +47,12 @@ class BottomNavBar extends StatelessWidget {
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today_outlined),
             activeIcon: Icon(Icons.calendar_today),
-            label: 'Planning',
+            label: 'Agenda',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.spa_outlined),
+            activeIcon: Icon(Icons.spa),
+            label: 'Wellness',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
