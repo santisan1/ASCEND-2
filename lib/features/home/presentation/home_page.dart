@@ -14,6 +14,7 @@ import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth;
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/theme_mode_provider.dart';
 import '../../../core/widgets/bottom_nav_bar.dart';
 import '../../../features/auth/domain/auth_provider.dart' as local_auth;
 import '../../../app/routes/app_routes.dart';
@@ -443,7 +444,7 @@ class _HomeContentPageState extends State<HomeContentPage> {
                 children: [
                   _buildDayCard(),
                   const SizedBox(height: 16),
-                  _buildHabitsCard(),
+                  _buildLifePulseCard(),
                   const SizedBox(height: 16),
                   _buildRemindersCard(),
                 ],
@@ -913,104 +914,63 @@ class _HomeContentPageState extends State<HomeContentPage> {
     );
   }
 
-
-
-
-  Widget _buildLifeInsightsCard() {
+  Widget _buildLifePulseCard() {
     final habitsProvider = context.watch<HabitsProvider>();
     final financeProvider = context.watch<FinanceProvider>();
-    final notificationsProvider = context.watch<NotificationPreferencesProvider>();
-
-    final habitsScore = habitsProvider.getWeeklyConsistency();
-    final savingsRate = financeProvider.savingsRate.clamp(0.0, 1.0);
-    final notifScore = notificationsProvider.reminders.where((r) => r.enabled).isEmpty
-        ? 0.3
-        : 0.8;
-
-    final integralScore = ((habitsScore * 0.45) + (savingsRate * 0.35) + (notifScore * 0.2))
-        .clamp(0.0, 1.0);
-
-    final status = integralScore >= 0.75
-        ? 'verde'
-        : integralScore >= 0.45
-        ? 'amarillo'
-        : 'rojo';
-
-    final statusColor = status == 'verde'
-        ? AppColors.accentGreen
-        : status == 'amarillo'
-        ? AppColors.warning
-        : AppColors.error;
-
     final userId = FirebaseAuth.instance.currentUser?.uid;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.borderDark),
+    final totalToday = habitsProvider.habitsDueToday.length;
+    final completedToday = habitsProvider.completedToday.length;
+    final habitsScore = totalToday == 0 ? 1.0 : completedToday / totalToday;
+    final financeScore = financeProvider.savingsRate.clamp(0.0, 1.0);
+    final globalScore = ((habitsScore + financeScore) / 2).clamp(0.0, 1.0);
+
+    return AscendCardWithTitle(
+      title: 'Estado general de hoy',
+      icon: Icons.monitor_heart,
+      iconColor: AppColors.primary,
+      trailing: Text(
+        '${(globalScore * 100).toStringAsFixed(0)}%',
+        style: AppTextStyles.bodySmall.copyWith(
+          color: AppColors.primary,
+          fontWeight: FontWeight.w700,
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      content: Column(
         children: [
-          Row(
-            children: [
-              const Icon(Icons.insights, color: AppColors.primary),
-              const SizedBox(width: 8),
-              Text(
-                'Insights de vida (hoy)',
-                style: AppTextStyles.h4.copyWith(color: AppColors.textPrimaryDark),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  status.toUpperCase(),
-                  style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
+          _buildMetricRow(
+            'Ritmo diario',
+            completedToday,
+            totalToday,
+            AppColors.accentGreen,
           ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: integralScore,
-            minHeight: 9,
-            backgroundColor: AppColors.surfaceVariantDark,
-            valueColor: AlwaysStoppedAnimation(statusColor),
-            borderRadius: BorderRadius.circular(8),
+          _buildMetricRow(
+            'Control financiero',
+            (financeScore * 100).round(),
+            100,
+            AppColors.accent,
+            suffix: '%',
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Índice integral: ${(integralScore * 100).toStringAsFixed(0)}% · Hábitos ${(habitsScore * 100).toStringAsFixed(0)}% · Finanzas ${(savingsRate * 100).toStringAsFixed(0)}%',
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Sync notif: ${notificationsProvider.syncState.name}',
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiaryDark),
-          ),
-          const SizedBox(height: 12),
           if (userId != null)
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('users')
                   .doc(userId)
-                  .collection('spiritual_entries')
-                  .orderBy('createdAt', descending: true)
-                  .limit(7)
+                  .collection('agenda_events')
+                  .where(
+                    'startAt',
+                    isGreaterThanOrEqualTo: Timestamp.fromDate(DateTime.now()),
+                  )
+                  .orderBy('startAt')
+                  .limit(10)
                   .snapshots(),
               builder: (context, snapshot) {
-                final count = snapshot.data?.docs.length ?? 0;
-                final spiritualityScore = (count / 7).clamp(0.0, 1.0);
-                return Text(
-                  'Espiritualidad (7 días): ${(spiritualityScore * 100).toStringAsFixed(0)}% (${count}/7 entradas)',
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+                final events = snapshot.data?.docs ?? [];
+                return _buildMetricRow(
+                  'Agenda próxima (7 días)',
+                  events.length,
+                  10,
+                  AppColors.info,
                 );
               },
             ),
@@ -1018,6 +978,55 @@ class _HomeContentPageState extends State<HomeContentPage> {
       ),
     );
   }
+
+  Widget _buildMetricRow(
+    String label,
+    int value,
+    int total,
+    Color color, {
+    String suffix = '',
+  }) {
+    final safeTotal = total == 0 ? 1 : total;
+    final progress = (value / safeTotal).clamp(0.0, 1.0);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondaryDark,
+                ),
+              ),
+              Text(
+                '$value${suffix.isNotEmpty ? suffix : ''}/$total',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textPrimaryDark,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          LinearProgressIndicator(
+            value: progress,
+            minHeight: 8,
+            borderRadius: BorderRadius.circular(999),
+            backgroundColor: AppColors.surfaceVariantDark,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
 
   Widget _buildRemindersCard() {
     final provider = context.watch<NotificationPreferencesProvider>();
@@ -1333,6 +1342,36 @@ class _ProfilePageState extends State<ProfilePage> {
                   Text(
                     'Google Health: integración planificada para la pestaña Salud (pasos, calorías, etc.).',
                     style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceDark,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.borderDark),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.light_mode, color: AppColors.warning),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Tema claro',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textPrimaryDark,
+                      ),
+                    ),
+                  ),
+                  Consumer<ThemeModeProvider>(
+                    builder: (context, themeProvider, _) => Switch(
+                      value: themeProvider.isLightMode,
+                      onChanged: themeProvider.toggleTheme,
+                    ),
                   ),
                 ],
               ),
