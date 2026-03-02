@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -49,6 +50,12 @@ class _HealthPageState extends State<HealthPage> {
     }
   }
 
+
+  Future<void> _openHealthConnect() async {
+    final uri = Uri.parse('https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata');
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -95,8 +102,14 @@ class _HealthPageState extends State<HealthPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Google Health / Health Connect: integración siguiente iteración.',
+                        'Conectá Google Health (Health Connect) para traer pasos y calorías automáticas.',
                         style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: _openHealthConnect,
+                        icon: const Icon(Icons.link),
+                        label: const Text('Conectar Google Health'),
                       ),
                     ],
                   ),

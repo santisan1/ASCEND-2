@@ -55,6 +55,15 @@ enum HabitTrigger {
   const HabitTrigger(this.displayName, this.timeRange);
 }
 
+enum HabitCadence {
+  daily('Diaria'),
+  weekly('Semanal'),
+  monthly('Mensual');
+
+  final String displayName;
+  const HabitCadence(this.displayName);
+}
+
 // ============================================================================
 // MODEL: HABIT (MEJORADO)
 // ============================================================================
@@ -80,6 +89,7 @@ class Habit {
   final List<String> completionHistory;
   final HabitPriority priority;
   final HabitTrigger trigger;
+  final HabitCadence cadence;
   final bool isTemplate;
   final String? templateId;
 
@@ -115,6 +125,7 @@ class Habit {
     this.completionHistory = const [],
     this.priority = HabitPriority.medium,
     this.trigger = HabitTrigger.anytime,
+    this.cadence = HabitCadence.daily,
     this.isTemplate = false,
     this.templateId,
     this.estimatedDuration = 15, // 15 min por defecto
@@ -125,10 +136,36 @@ class Habit {
   });
 
   // ========== COMPUTED PROPERTIES ==========
-  bool get isFullyCompletedToday => completionsToday >= dailyRepetitions;
+  bool get isFullyCompletedToday {
+    if (cadence == HabitCadence.daily) {
+      return completionsToday >= dailyRepetitions;
+    }
+    return isCompletedCurrentPeriod;
+  }
+
+  bool get isCompletedCurrentPeriod {
+    final now = DateTime.now();
+    for (final completion in completionHistory) {
+      try {
+        final date = DateTime.parse(completion);
+        if (cadence == HabitCadence.weekly) {
+          final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+          final start = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+          if (!date.isBefore(start)) return true;
+        } else if (cadence == HabitCadence.monthly) {
+          if (date.year == now.year && date.month == now.month) return true;
+        }
+      } catch (_) {}
+    }
+    return false;
+  }
+
   bool get isDueToday {
-    final today = DateTime.now().weekday;
-    return frequency.contains(today);
+    if (cadence == HabitCadence.daily) {
+      final today = DateTime.now().weekday;
+      return frequency.contains(today);
+    }
+    return !isCompletedCurrentPeriod;
   }
 
   // Completado al menos una vez hoy
@@ -170,7 +207,6 @@ class Habit {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // Si ya completó todas las repeticiones de hoy, no hacer nada
     if (isFullyCompletedToday) {
       return this;
     }
@@ -361,6 +397,7 @@ class Habit {
     List<String>? completionHistory,
     HabitPriority? priority,
     HabitTrigger? trigger,
+    HabitCadence? cadence,
     bool? isTemplate,
     String? templateId,
     int? estimatedDuration,
@@ -388,12 +425,14 @@ class Habit {
       lastCompleted: lastCompleted ?? this.lastCompleted,
       priority: priority ?? this.priority,
       trigger: trigger ?? this.trigger,
+      cadence: cadence ?? this.cadence,
       isTemplate: isTemplate ?? this.isTemplate,
       templateId: templateId ?? this.templateId,
       completionHistory: completionHistory ?? this.completionHistory,
       estimatedDuration: estimatedDuration ?? this.estimatedDuration,
       dailyRepetitions: dailyRepetitions ?? this.dailyRepetitions,
       completionTimesToday: completionTimesToday ?? this.completionTimesToday,
+      completionsToday: completionsToday ?? this.completionsToday,
     );
   }
 
@@ -422,6 +461,7 @@ class Habit {
       'completionHistory': completionHistory,
       'priority': priority.index,
       'trigger': trigger.index,
+      'cadence': cadence.name,
       'isTemplate': isTemplate,
       'templateId': templateId,
       'estimatedDuration': estimatedDuration,
@@ -476,12 +516,17 @@ class Habit {
       trigger: data['trigger'] != null
           ? HabitTrigger.values[data['trigger'] as int]
           : HabitTrigger.anytime,
+      cadence: HabitCadence.values.firstWhere(
+        (c) => c.name == (data['cadence'] ?? 'daily'),
+        orElse: () => HabitCadence.daily,
+      ),
       isTemplate: data['isTemplate'] ?? false,
       templateId: data['templateId'],
       completionHistory: List<String>.from(data['completionHistory'] ?? []),
       estimatedDuration: data['estimatedDuration'] ?? 15,
       dailyRepetitions: data['dailyRepetitions'] ?? 1,
       completionTimesToday: todayCompletions,
+      completionsToday: todayCompletions.length,
     );
   }
 }

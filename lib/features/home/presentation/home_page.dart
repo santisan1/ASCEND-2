@@ -3,11 +3,11 @@ import 'package:ascend/features/finance/presentation/pages/finance_home_page.dar
 import 'package:ascend/features/finance/domain/finance_provider.dart';
 import 'package:ascend/features/habits/presentation/habits_page.dart';
 import 'package:ascend/features/habits/domain/habits_provider.dart';
-import 'package:ascend/features/nutrition/presentation/food_stock_page.dart' as nutrition;
 import 'package:ascend/features/notifications/presentation/notification_settings_page.dart';
 import 'package:ascend/features/notifications/domain/notification_preferences_provider.dart';
 import 'package:ascend/features/wellness/presentation/spirituality_page.dart';
-import 'package:ascend/features/wellness/presentation/health_page.dart';
+import 'package:ascend/features/wellness/presentation/wellness_hub_page.dart';
+import 'package:ascend/features/agenda/presentation/agenda_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth;
@@ -86,8 +86,8 @@ class _HomePageState extends State<HomePage> {
       HomeContentPage(displayName: displayName),
       const FinanceHomePage(),
       const HabitsPage(),
-      const HealthPage(),
-      const nutrition.FoodStockPage(),
+      const AgendaPage(),
+      const WellnessHubPage(),
       ProfilePage(displayName: displayName),
     ];
 
