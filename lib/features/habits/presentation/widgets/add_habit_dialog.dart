@@ -26,6 +26,7 @@ class _AddHabitDialogState extends State<AddHabitDialog> {
 
   HabitPriority _priority = HabitPriority.medium;
   HabitTrigger _trigger = HabitTrigger.anytime;
+  HabitCadence _cadence = HabitCadence.daily;
   TimeOfDay? _reminderTime;
   int _targetDays = 30;
   String _selectedIcon = 'fitness_center';
@@ -77,7 +78,7 @@ class _AddHabitDialogState extends State<AddHabitDialog> {
       return;
     }
 
-    if (_selectedDays.isEmpty) {
+    if (_cadence == HabitCadence.daily && _selectedDays.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Selecciona al menos un día'),
@@ -102,11 +103,12 @@ class _AddHabitDialogState extends State<AddHabitDialog> {
       description: _descriptionController.text.trim(),
       icon: _selectedIcon,
       category: _selectedCategory,
-      frequency: _selectedDays,
+      frequency: _cadence == HabitCadence.daily ? _selectedDays : [1, 2, 3, 4, 5, 6, 7],
       difficulty: _difficulty,
       impact: _impact,
       priority: _priority,
       trigger: _trigger,
+      cadence: _cadence,
       reminderTime: _reminderTime != null
           ? '${_reminderTime!.hour.toString().padLeft(2, '0')}:${_reminderTime!.minute.toString().padLeft(2, '0')}'
           : null,
@@ -273,6 +275,47 @@ class _AddHabitDialogState extends State<AddHabitDialog> {
                                     ),
                                   ),
                                 ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      _buildSectionTitle('Frecuencia objetivo'),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: HabitCadence.values.map((cadence) {
+                          final selected = _cadence == cadence;
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: InkWell(
+                                onTap: () => setState(() => _cadence = cadence),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: selected
+                                        ? AppColors.primary.withOpacity(0.2)
+                                        : AppColors.surfaceVariantDark,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: selected ? AppColors.primary : AppColors.borderDark,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    cadence.displayName,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: selected
+                                          ? AppColors.primary
+                                          : AppColors.textSecondaryDark,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           );
