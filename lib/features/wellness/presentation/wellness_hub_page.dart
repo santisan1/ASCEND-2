@@ -16,7 +16,7 @@ class WellnessHubPage extends StatelessWidget {
         backgroundColor: AppColors.backgroundDark,
         appBar: AppBar(
           backgroundColor: AppColors.surfaceDark,
-          title: const Text('Wellness'),
+          title: const Text('Wellness Hub'),
           bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.favorite), text: 'Salud'),

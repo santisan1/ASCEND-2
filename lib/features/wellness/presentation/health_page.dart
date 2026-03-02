@@ -14,6 +14,9 @@ class HealthPage extends StatefulWidget {
 }
 
 class _HealthPageState extends State<HealthPage> {
+  static const _healthConnectUrl =
+      'https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata';
+
   final _waterController = TextEditingController();
 
   @override
@@ -49,9 +52,7 @@ class _HealthPageState extends State<HealthPage> {
   }
 
   Future<void> _openHealthConnect() async {
-    final uri = Uri.parse(
-      'https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata',
-    );
+    final uri = Uri.parse(_healthConnectUrl);
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
