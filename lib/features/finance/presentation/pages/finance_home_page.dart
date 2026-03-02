@@ -85,6 +85,10 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
 
                             const SizedBox(height: 8),
 
+                            _buildExpenseCategoryBreakdown(financeProvider),
+
+                            const SizedBox(height: 8),
+
                             _buildInvestmentSnapshot(financeProvider),
 
                             const SizedBox(height: 8),
@@ -485,6 +489,67 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                 Text(
                   '\$${entry.value.toStringAsFixed(0)}',
                   style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimaryDark),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildExpenseCategoryBreakdown(FinanceProvider provider) {
+    final byCategory = provider.getExpenseByCategory();
+    final percentages = provider.getExpensePercentagesByCategory();
+
+    if (byCategory.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final sorted = byCategory.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return AscendCardWithTitle(
+      title: 'Distribución de gastos por categoría',
+      icon: Icons.pie_chart,
+      iconColor: AppColors.warning,
+      content: Column(
+        children: sorted.take(6).map((entry) {
+          final pct = (percentages[entry.key] ?? 0) * 100;
+          final ratio = (percentages[entry.key] ?? 0).clamp(0.0, 1.0);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Icon(entry.key.icon, size: 16, color: Color(entry.key.color)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    entry.key.displayName,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondaryDark,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 110,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      minHeight: 8,
+                      value: ratio,
+                      backgroundColor: AppColors.surfaceVariantDark,
+                      valueColor: AlwaysStoppedAnimation(Color(entry.key.color)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${pct.toStringAsFixed(0)}%',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textPrimaryDark,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),

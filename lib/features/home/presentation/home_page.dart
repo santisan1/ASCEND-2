@@ -843,33 +843,55 @@ class _HomeContentPageState extends State<HomeContentPage> {
   }
 
   Widget _buildDayCard() {
-    const items = [
-      DayPlanItem(
-        time: '09:00',
-        title: 'Reunión equipo',
-        status: TimelineStatus.completed,
-        icon: Icons.videocam,
-        color: AppColors.primary,
-      ),
-      DayPlanItem(
-        time: 'Ahora',
-        title: 'Trabajo en proyecto',
-        status: TimelineStatus.current,
-        icon: Icons.work,
-        color: AppColors.accent,
-      ),
-      DayPlanItem(
-        time: '16:00',
-        title: 'Revisión finanzas',
-        status: TimelineStatus.upcoming,
-        icon: Icons.attach_money,
-        color: AppColors.accentGreen,
-      ),
-    ];
+    final habitsProvider = context.watch<HabitsProvider>();
+    final notificationsProvider = context.watch<NotificationPreferencesProvider>();
 
-    final completedCount = items
-        .where((item) => item.status == TimelineStatus.completed)
-        .length;
+    final items = <DayPlanItem>[];
+
+    for (final reminder in notificationsProvider.reminders.where((r) => r.enabled).take(3)) {
+      items.add(
+        DayPlanItem(
+          time: '${reminder.hour.toString().padLeft(2, '0')}:${reminder.minute.toString().padLeft(2, '0')}',
+          title: reminder.module,
+          status: TimelineStatus.upcoming,
+          icon: Icons.notifications_active,
+          color: AppColors.accent,
+        ),
+      );
+    }
+
+    if (items.isEmpty) {
+      for (final habit in habitsProvider.habitsDueToday.take(3)) {
+        items.add(
+          DayPlanItem(
+            time: 'Hoy',
+            title: habit.name,
+            status: habit.isFullyCompletedToday
+                ? TimelineStatus.completed
+                : TimelineStatus.current,
+            icon: habit.category?.icon ?? Icons.check_circle,
+            color: habit.isFullyCompletedToday
+                ? AppColors.accentGreen
+                : AppColors.primary,
+          ),
+        );
+      }
+    }
+
+    if (items.isEmpty) {
+      items.add(
+        const DayPlanItem(
+          time: 'Sin tareas',
+          title: 'No tenés recordatorios activos',
+          status: TimelineStatus.upcoming,
+          icon: Icons.event_available,
+          color: AppColors.textTertiaryDark,
+        ),
+      );
+    }
+
+    final completedCount =
+        items.where((item) => item.status == TimelineStatus.completed).length;
 
     return AscendCardWithTitle(
       title: 'Tu día hoy',
@@ -973,13 +995,17 @@ class _HomeContentPageState extends State<HomeContentPage> {
   }
 
   Widget _buildHabitsCard() {
-    const habits = [
-      HabitSummaryItem(label: 'Meditar', icon: Icons.self_improvement, completed: true),
-      HabitSummaryItem(label: 'Ejercicio', icon: Icons.directions_run, completed: true),
-      HabitSummaryItem(label: 'Agua 2L', icon: Icons.water_drop, completed: false),
-      HabitSummaryItem(label: 'Lectura', icon: Icons.menu_book, completed: false),
-      HabitSummaryItem(label: 'Dormir 8h', icon: Icons.nightlight, completed: true),
-    ];
+    final habitsProvider = context.watch<HabitsProvider>();
+
+    final habits = habitsProvider.habitsDueToday
+        .map(
+          (habit) => HabitSummaryItem(
+            label: habit.name,
+            icon: habit.category?.icon ?? Icons.check_circle,
+            completed: habit.isFullyCompletedToday,
+          ),
+        )
+        .toList();
 
     final completedCount = habits.where((habit) => habit.completed).length;
 
@@ -993,26 +1019,35 @@ class _HomeContentPageState extends State<HomeContentPage> {
           color: AppColors.textSecondaryDark,
         ),
       ),
-      content: Column(
-        children: [
-          LinearProgressIndicator(
-            value: habits.isEmpty ? 0 : completedCount / habits.length,
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(999),
-            backgroundColor: AppColors.surfaceVariantDark,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.accentGreen),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final habit in habits)
-                _buildHabitChip(habit.label, habit.icon, habit.completed),
-            ],
-          ),
-        ],
-      ),
+      content: habits.isEmpty
+          ? Text(
+              'No hay hábitos programados para hoy',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondaryDark,
+              ),
+            )
+          : Column(
+              children: [
+                LinearProgressIndicator(
+                  value: habits.isEmpty ? 0 : completedCount / habits.length,
+                  minHeight: 8,
+                  borderRadius: BorderRadius.circular(999),
+                  backgroundColor: AppColors.surfaceVariantDark,
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.accentGreen,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final habit in habits)
+                      _buildHabitChip(habit.label, habit.icon, habit.completed),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 

@@ -186,10 +186,16 @@ class FinanceProvider extends ChangeNotifier {
         createdAt: DateTime.now(),
       );
 
-      // Asumiendo que existe un método toFirestore() en FinanceTransaction
-      await _firestore
+      final docRef = await _firestore
           .collection('transactions')
           .add(transactionWithUser.ToFirestore());
+
+      final createdTransaction = transactionWithUser.copyWith(id: docRef.id);
+      _transactions = [createdTransaction, ..._transactions]
+        ..sort((a, b) => b.date.compareTo(a.date));
+      _calculateStats();
+      _error = null;
+      notifyListeners();
     } catch (e) {
       _error = 'Error al agregar transacción: $e';
       notifyListeners();
@@ -202,8 +208,17 @@ class FinanceProvider extends ChangeNotifier {
     try {
       await _firestore
           .collection('transactions')
-          .doc(transsaction.id) // USAR transsaction
-          .update(transsaction.ToFirestore()); // USAR transsaction
+          .doc(transsaction.id)
+          .update(transsaction.ToFirestore());
+
+      final index = _transactions.indexWhere((t) => t.id == transsaction.id);
+      if (index != -1) {
+        _transactions[index] = transsaction;
+        _transactions.sort((a, b) => b.date.compareTo(a.date));
+        _calculateStats();
+        _error = null;
+        notifyListeners();
+      }
     } catch (e) {
       _error = 'Error al actualizar transacción: $e';
       notifyListeners();
@@ -214,6 +229,10 @@ class FinanceProvider extends ChangeNotifier {
   Future<void> deleteTransaction(String transactionId) async {
     try {
       await _firestore.collection('transactions').doc(transactionId).delete();
+      _transactions.removeWhere((t) => t.id == transactionId);
+      _calculateStats();
+      _error = null;
+      notifyListeners();
     } catch (e) {
       _error = 'Error al eliminar transacción: $e';
       notifyListeners();
@@ -349,6 +368,28 @@ class FinanceProvider extends ChangeNotifier {
 
     result.removeWhere((_, value) => value == 0.0);
     return result;
+  }
+
+  Map<TransactionCategory, double> getExpenseByCategory() {
+    final result = <TransactionCategory, double>{};
+    for (final tx in monthTransactions) {
+      if (tx.isExpense) {
+        result[tx.category] = (result[tx.category] ?? 0.0) + tx.amount;
+      }
+    }
+    return result;
+  }
+
+  Map<TransactionCategory, double> getExpensePercentagesByCategory() {
+    final expenseByCategory = getExpenseByCategory();
+    final total = expenseByCategory.values.fold(0.0, (sum, value) => sum + value);
+    if (total <= 0) return {};
+
+    final percentages = <TransactionCategory, double>{};
+    expenseByCategory.forEach((category, value) {
+      percentages[category] = (value / total).clamp(0.0, 1.0);
+    });
+    return percentages;
   }
 
   double getTotalInvestedThisMonth() {
