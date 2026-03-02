@@ -916,6 +916,109 @@ class _HomeContentPageState extends State<HomeContentPage> {
 
 
 
+  Widget _buildLifeInsightsCard() {
+    final habitsProvider = context.watch<HabitsProvider>();
+    final financeProvider = context.watch<FinanceProvider>();
+    final notificationsProvider = context.watch<NotificationPreferencesProvider>();
+
+    final habitsScore = habitsProvider.getWeeklyConsistency();
+    final savingsRate = financeProvider.savingsRate.clamp(0.0, 1.0);
+    final notifScore = notificationsProvider.reminders.where((r) => r.enabled).isEmpty
+        ? 0.3
+        : 0.8;
+
+    final integralScore = ((habitsScore * 0.45) + (savingsRate * 0.35) + (notifScore * 0.2))
+        .clamp(0.0, 1.0);
+
+    final status = integralScore >= 0.75
+        ? 'verde'
+        : integralScore >= 0.45
+        ? 'amarillo'
+        : 'rojo';
+
+    final statusColor = status == 'verde'
+        ? AppColors.accentGreen
+        : status == 'amarillo'
+        ? AppColors.warning
+        : AppColors.error;
+
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.borderDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.insights, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                'Insights de vida (hoy)',
+                style: AppTextStyles.h4.copyWith(color: AppColors.textPrimaryDark),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  status.toUpperCase(),
+                  style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: integralScore,
+            minHeight: 9,
+            backgroundColor: AppColors.surfaceVariantDark,
+            valueColor: AlwaysStoppedAnimation(statusColor),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Índice integral: ${(integralScore * 100).toStringAsFixed(0)}% · Hábitos ${(habitsScore * 100).toStringAsFixed(0)}% · Finanzas ${(savingsRate * 100).toStringAsFixed(0)}%',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Sync notif: ${notificationsProvider.syncState.name}',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiaryDark),
+          ),
+          const SizedBox(height: 12),
+          if (userId != null)
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(userId)
+                  .collection('spiritual_entries')
+                  .orderBy('createdAt', descending: true)
+                  .limit(7)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                final count = snapshot.data?.docs.length ?? 0;
+                final spiritualityScore = (count / 7).clamp(0.0, 1.0);
+                return Text(
+                  'Espiritualidad (7 días): ${(spiritualityScore * 100).toStringAsFixed(0)}% (${count}/7 entradas)',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondaryDark),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRemindersCard() {
     final provider = context.watch<NotificationPreferencesProvider>();
     final reminders = provider.reminders;
